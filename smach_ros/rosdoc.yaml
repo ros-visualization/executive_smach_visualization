@@ -1,3 +1,0 @@
-- builder: epydoc
-  output_dir: python
-  config: epydoc.cfg
