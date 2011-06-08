@@ -48,6 +48,8 @@ wxversion.select("2.8")
 import wx
 import wx.richtext
 
+import textwrap
+
 import xdot
 import smach
 import smach_ros
@@ -149,7 +151,7 @@ class ContainerNode():
 
         return needs_update
 
-    def get_dotcode(self, selected_paths, closed_paths, depth, max_depth, containers, show_all, attrs={}):
+    def get_dotcode(self, selected_paths, closed_paths, depth, max_depth, containers, show_all, label_wrapper, attrs={}):
         dotstr = 'subgraph "cluster_%s" {\n' % (self._path)
         if depth == 0:
             #attrs['style'] = 'filled,rounded'
@@ -169,7 +171,7 @@ class ContainerNode():
                 'fontweight':'18',
                 'rank':'min',
                 'height':'0.01'}
-        proxy_attrs['label'] = self._label
+        proxy_attrs['label'] = '\\n'.join(label_wrapper.wrap(self._label))
         dotstr += '"%s" %s;\n' % (
                 '/'.join([self._path,'__proxy__']),
                 attr_string(proxy_attrs))
@@ -196,7 +198,7 @@ class ContainerNode():
                         'fillcolor':'#FE464f',#'#EDC2CC',
                         'color':'#780006',#'#EBAEBB',
                         'fontcolor':'#780006',#'#EBAEBB',
-                        'label':outcome_label,
+                        'label':'\\n'.join(label_wrapper.wrap(outcome_label)),
                         'URL':':'.join([self._path,outcome_label])
                         }
                 dotstr += '"%s" %s;\n' % (outcome_path,attr_string(outcome_attrs))
@@ -221,9 +223,10 @@ class ContainerNode():
                             depth+1, max_depth,
                             containers,
                             show_all,
+                            label_wrapper,
                             child_attrs)
                 else:
-                    child_attrs['label'] = child_label
+                    child_attrs['label'] = '\\n'.join(label_wrapper.wrap(child_label))
                     child_attrs['URL'] = child_path
                     dotstr += '"%s" %s;\n' % (child_path, attr_string(child_attrs))
 
@@ -260,7 +263,7 @@ class ContainerNode():
                     edge_attrs = {
                             'URL':':'.join([from_path,outcome_label,to_path]),
                             'fontsize':'12',
-                            'label':outcome_label}
+                            'label':'\\n'.join(label_wrapper.wrap(outcome_label))}
                     edge_attrs['style'] = 'setlinewidth(2)'
 
                     # Hide implicit
@@ -422,12 +425,14 @@ class SmachViewerFrame(wx.Frame):
 
         toolbar.AddControl(wx.StaticText(toolbar,-1,"Path: "))
 
+        # Path list
         self.path_combo = wx.ComboBox(toolbar, -1, style=wx.CB_DROPDOWN)
         self.path_combo .Bind(wx.EVT_COMBOBOX, self.set_path)
         self.path_combo.Append('/')
         self.path_combo.SetValue('/')
         toolbar.AddControl(self.path_combo)
 
+        # Depth spinner
         self.depth_spinner = wx.SpinCtrl(toolbar, -1,
                 size=wx.Size(50,-1),
                 min=-1,
@@ -438,6 +443,18 @@ class SmachViewerFrame(wx.Frame):
         toolbar.AddControl(wx.StaticText(toolbar,-1,"    Depth: "))
         toolbar.AddControl(self.depth_spinner)
 
+        # Label width spinner
+        self.width_spinner = wx.SpinCtrl(toolbar, -1,
+                size=wx.Size(50,-1),
+                min=1,
+                max=1337,
+                initial=40)
+        self.width_spinner.Bind(wx.EVT_SPINCTRL,self.set_label_width)
+        self._label_wrapper = textwrap.TextWrapper(40,break_long_words=True)
+        toolbar.AddControl(wx.StaticText(toolbar,-1,"    Label Width: "))
+        toolbar.AddControl(self.width_spinner)
+
+        # Implicit transition display
         toggle_all = wx.ToggleButton(toolbar,-1,'Show Implicit')
         toggle_all.Bind(wx.EVT_TOGGLEBUTTON, self.toggle_all_transitions)
         self._show_all_transitions = False
@@ -566,6 +583,11 @@ class SmachViewerFrame(wx.Frame):
 
     def set_depth(self, event):
         self._max_depth = self.depth_spinner.GetValue()
+        self._needs_zoom = True
+        self.update_graph()
+
+    def set_label_width(self, event):
+        self._label_wrapper.width = self.width_spinner.GetValue()
         self._needs_zoom = True
         self.update_graph()
 
@@ -709,14 +731,16 @@ class SmachViewerFrame(wx.Frame):
                             self._selected_paths,[],
                             0,self._max_depth,
                             self._containers,
-                            self._show_all_transitions)
+                            self._show_all_transitions,
+                            self._label_wrapper)
                 elif self._path == '/':
                     for path,tc in self._top_containers.iteritems():
                         dotstr += tc.get_dotcode(
                                 self._selected_paths,[],
                                 0,self._max_depth,
                                 self._containers,
-                                self._show_all_transitions)
+                                self._show_all_transitions,
+                                self._label_wrapper)
                         dotstr += '\n'
                 else:
                     dotstr += '"__empty__" [label="Path not available.", shape="plaintext"]\n'
