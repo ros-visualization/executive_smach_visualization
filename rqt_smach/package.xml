@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<package>
+  <name>rqt_smach</name>
+  <version>0.0.0</version>
+  <description>
+     rqt_smach provides a GUI plygin for visualizing SMACH plans.
+  </description>
+
+  <maintainer email="jonathan.bohren@gmail.com">Jonathan Bohren</maintainer>
+  <maintainer email="130s@lateeye.net">Isaac Saito</maintainer>
+  <author>Jonathan Bohren</author>
+  <license>BSD</license>
+  
+  <url type="website">http://ros.org/wiki/rqt_smach</url>
+  <url type="repository">https://github.com/ros-visualization/executive_smach_visualization/tree/groovy-devel/rqt_smach</url>
+  <url type="bugtracker">https://github.com/ros-visualization/executive_smach_visualization/issues</url>
+    
+  <buildtool_depend>catkin</buildtool_depend>
+  <run_depend>qt_dotgraph</run_depend>
+  <run_depend>roslib</run_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>rqt_gui</run_depend>
+  <run_depend>rqt_gui_py</run_depend>
+
+  <export>
+      <rqt_gui plugin="${prefix}/plugin.xml" />
+  </export>
+</package>
