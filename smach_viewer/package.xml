@@ -21,6 +21,8 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
+  <build_depend>rostest</build_depend>
+
   <!-- Dependencies needed after this package is compiled. -->
   <run_depend>smach_ros</run_depend>
   <run_depend>xdot</run_depend>
