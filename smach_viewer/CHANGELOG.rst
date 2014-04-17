@@ -2,8 +2,8 @@
 Changelog for package smach_viewer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.0.0 (2014-04-17)
+------------------
 * Removing rosbuild support and old useless test
 * Fix lost information in package.xml
   That was dropped while catkinizing
