@@ -32,6 +32,7 @@
 
 import roslib; roslib.load_manifest('smach_viewer')
 import rospy
+import rospkg
 
 from smach_msgs.msg import SmachContainerStatus,SmachContainerInitialStatusCmd,SmachContainerStructure
 
@@ -43,6 +44,7 @@ import pprint
 import copy
 import StringIO
 import colorsys
+import time
 
 import wxversion
 wxversion.select("2.8")
