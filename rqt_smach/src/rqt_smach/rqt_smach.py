@@ -35,10 +35,13 @@
 from __future__ import division # See PEP#238
 import os
 
-## Fuerte ROS imports
-import roslib; roslib.load_manifest('rqt_smach')
-import rospy
-import rospkg
+
+try:
+    import rospy, rospkg
+except:
+    ## Fuerte ROS imports
+    import roslib; roslib.load_manifest('rqt_smach')
+    import rospy, rospkg
 
 ## QT Imports
 from python_qt_binding import loadUi
@@ -48,15 +51,16 @@ from python_qt_binding.QtSvg import QSvgGenerator
 
 ## RQT
 from qt_gui.plugin import Plugin
+from rqt_graph.ros_graph import *
 
-## GraphViz 
+## GraphViz
 from qt_dotgraph.dot_to_qt import DotToQtGenerator
 from qt_dotgraph.pydotfactory import PydotFactory # pydot requires some hacks
 # TODO: use pygraphviz instead, but non-deterministic layout will first be resolved in graphviz 2.30
 # from qtgui_plugin.pygraphvizfactory import PygraphvizFactory
 
 ## Local imports
-from .dotcode import SmachGraphDotcodeGenerator, NODE_NODE_GRAPH, NODE_TOPIC_ALL_GRAPH, NODE_TOPIC_GRAPH
+from .dotcode import RosGraphDotcodeGenerator, NODE_NODE_GRAPH, NODE_TOPIC_ALL_GRAPH, NODE_TOPIC_GRAPH
 from .interactive_graphics_view import InteractiveGraphicsView
 
 #from xdot.xdot_qt import #XDotWidget
