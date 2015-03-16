@@ -316,7 +316,7 @@ class SmachViewer(Plugin):
 
         # Disable the controls since we can't customize a graph loaded from
         # file.
-        self._enable_controls(false)
+        self._enable_controls(False)
 
         self._update_graph_view(dotcode)
 
