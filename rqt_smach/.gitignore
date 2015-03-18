@@ -1,0 +1,6 @@
+*.pyc
+bin
+!bin/rqt_smach
+
+\#*
+*~
