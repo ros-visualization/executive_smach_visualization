@@ -510,11 +510,17 @@ class SmachViewerFrame(wx.Frame):
         toolbar.AddControl(wx.StaticText(toolbar,-1,"    "))
         toolbar.AddControl(toggle_all)
 
+        toggle_auto_focus = wx.ToggleButton(toolbar, -1, 'Auto Focus')
+        toggle_auto_focus.Bind(wx.EVT_TOGGLEBUTTON, self.toggle_auto_focus)
+        self._auto_focus = False
+
+        toolbar.AddControl(wx.StaticText(toolbar, -1, "    "))
+        toolbar.AddControl(toggle_auto_focus)
+
         toolbar.AddControl(wx.StaticText(toolbar,-1,"    "))
         toolbar.AddLabelTool(wx.ID_HELP, 'Help',
                 wx.ArtProvider.GetBitmap(wx.ART_HELP,wx.ART_OTHER,(16,16)) )
         toolbar.Realize()
-
 
         self.Bind(wx.EVT_TOOL, self.ShowControlsDialog, id=wx.ID_HELP)
 
@@ -630,9 +636,21 @@ class SmachViewerFrame(wx.Frame):
         self._needs_zoom = True
         self.update_graph()
 
+    def _set_path(self, path):
+        self._path = path
+        self._needs_zoom = True
+        self.path_combo.SetValue(path)
+        self.update_graph()
+
     def set_depth(self, event):
         """Event: Change the maximum depth and update the graph."""
         self._max_depth = self.depth_spinner.GetValue()
+        self._needs_zoom = True
+        self.update_graph()
+
+    def _set_max_depth(self, max_depth):
+        self._max_depth = max_depth
+        self.depth_spinner.SetValue(max_depth)
         self._needs_zoom = True
         self.update_graph()
 
@@ -646,6 +664,16 @@ class SmachViewerFrame(wx.Frame):
         """Event: Change whether automatic transitions are hidden and update the graph."""
         self._show_all_transitions = not self._show_all_transitions
         self._structure_changed = True
+        self.update_graph()
+
+    def toggle_auto_focus(self, event):
+        """Event: Enable/Disable automatically focusing"""
+        self._auto_focus = not self._auto_focus
+        self._needs_zoom = self._auto_focus
+        self._structure_changed = True
+        if not self._auto_focus:
+            self._set_path('/')
+            self._max_depth(-1)
         self.update_graph()
 
     def select_cb(self, item, event):
@@ -750,7 +778,7 @@ class SmachViewerFrame(wx.Frame):
 
             # We need to redraw thhe graph if this container's parent is already known
             if parent_path in self._containers:
-                needs_redraw= True
+                needs_redraw = True
 
         # Update the graph if necessary
         if needs_redraw:
@@ -765,6 +793,10 @@ class SmachViewerFrame(wx.Frame):
         # Check if we're in the process of shutting down
         if not self._keep_running:
             return
+
+        if self._auto_focus and len(msg.info) > 0:
+            self._set_path(msg.info)
+            self._set_max_depth(msg.info.count('/')-1)
 
         # Get the path to the updating conainer
         path = msg.path
