@@ -650,6 +650,11 @@ class SmachViewerFrame(wx.Frame):
 
     def select_cb(self, item, event):
         """Event: Click to select a graph node to display user data and update the graph."""
+
+        # Only set string status
+        if not type(item.url) is str:
+            return
+
         self.statusbar.SetStatusText(item.url)
         # Left button-up
         if event.ButtonUp(wx.MOUSE_BTN_LEFT):
