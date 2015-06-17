@@ -17,29 +17,7 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
-      <widget class="QPushButton" name="ns_refresh_button">
-       <property name="toolTip">
-        <string>Refresh available namespaces.</string>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="iconSize">
-        <size>
-         <width>18</width>
-         <height>18</height>
-        </size>
-       </property>
-       <property name="shortcut">
-        <string>Ctrl+S</string>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QCheckBox" name="restrict_ns">
-       <property name="text">
-        <string>Enable</string>
-       </property>
       </widget>
      </item>
      <item>
@@ -75,9 +53,21 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="refresh_button">
+      <widget class="QPushButton" name="ns_refresh_button">
+       <property name="toolTip">
+        <string>Refresh available namespaces.</string>
+       </property>
        <property name="text">
-        <string>Update</string>
+        <string/>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>18</width>
+         <height>18</height>
+        </size>
+       </property>
+       <property name="shortcut">
+        <string>Ctrl+S</string>
        </property>
       </widget>
      </item>
@@ -414,9 +404,16 @@
         </widget>
        </item>
        <item>
-        <widget class="QTextBrowser" name="ud_text_browser">
+        <widget class="QTextEdit" name="ud_text_browser">
          <property name="verticalScrollBarPolicy">
           <enum>Qt::ScrollBarAlwaysOn</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="ud_set_initial">
+         <property name="text">
+          <string>Set as Initial State</string>
          </property>
         </widget>
        </item>

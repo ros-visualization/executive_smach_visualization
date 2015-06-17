@@ -2,16 +2,17 @@ import os
 import rospy
 import roslib
 import sys
+import time
 
 from qt_gui.plugin import Plugin
 from python_qt_binding import loadUi
 from python_qt_binding.QtGui import QWidget
 from python_qt_binding.QtGui import QPalette
 from python_qt_binding.QtGui import QStyle,QApplication,QMouseEvent
-from python_qt_binding.QtCore import * #Qt
+from python_qt_binding.QtCore import Qt
 from python_qt_binding.QtCore import Signal,Slot
 from python_qt_binding.QtGui import QWidget,QPalette,QColor,QStandardItemModel,QItemDelegate,QStyleOptionButton,QStandardItem,QIcon
-from python_qt_binding.QtCore import Qt,QTimer,Signal,QRect,QSize,QEvent
+from python_qt_binding.QtCore import Qt,QTime,QTimer,Signal,QRect,QSize,QEvent
 from rqt_py_common.extended_combo_box import ExtendedComboBox
 from qt_gui_py_common.worker_thread import WorkerThread
 
@@ -36,8 +37,6 @@ import smach_msgs.msg
 from actionlib_msgs.msg import GoalStatus
 from smach_msgs.msg import SmachContainerStatus,SmachContainerInitialStatusCmd,SmachContainerStructure
 from .container_node import ContainerNode
-
-from PySide import QtGui
 
 ### Helper Functions
 def graph_attr_string(attrs):
@@ -182,15 +181,17 @@ class Smach(Plugin):
         palette.setColor(QPalette.Background, Qt.white)
         self._widget.setPalette(palette)
 
-        #self._widget.subscribe_button.setCheckable(True)
         #TODO do for both combo boxes
-        self._widget.namespace_input.currentIndexChanged.connect(self._handle_refresh_clicked)
+        self._widget.namespace_input.currentIndexChanged.connect(self._handle_ns_changed)
         self._widget.ns_refresh_button.clicked.connect(self.refresh_combo_box)
         self._widget.restrict_ns.stateChanged.connect(self.refresh_combo_box)
+        self._widget.ud_path_input.currentIndexChanged.connect(self._handle_ud_path)
+        self._widget.ud_set_initial.clicked.connect(self._handle_ud_set_path)
+        self._widget.ud_text_browser.setReadOnly(1)
+        #TODO if unchecked do handle_ns_changed
 
         self._widget.tree.setColumnCount(1)
-        self._widget.tree.setHeaderLabels(['Containers'])
-        self._qlist = [] #QStringList()
+        self._widget.tree.setHeaderLabels(["Containers"])
 
         self._ns = ""
         self.refresh_combo_box()
@@ -199,91 +200,128 @@ class Smach(Plugin):
         self._widget.path_input.currentIndexChanged.connect(
                 self._handle_path_changed)
 
-        #OLD v. NEW (RQT -> smach)
+        #Keep Combo Boxes sorted
+        self._widget.namespace_input.setInsertPolicy(6)
+        self._widget.path_input.setInsertPolicy(6)
+        self._widget.ud_path_input.setInsertPolicy(6)
 
         # Create graph data structures
         # Containers is a map of (container path) -> container proxy
         self._containers = {}
         self._top_containers = {}
 
-        # This is triggered every time the display needs to be updated
-        #TODO Qt equivalent
-        self._update_cond = threading.Condition()
-
         # smach introspection client
         self._client = smach_ros.IntrospectionClient()
-        self._containers= {}
         self._selected_paths = []
 
         # Message subscribers
         self._structure_subs = {}
         self._status_subs = {}
 
-        # Populate the frame with widgets
-        #self._populate_frame()
-
-        #TODO Register mouse event callback for xdot widget
-        #self.widget.register_select_callback(self.select_cb)
-
         # Initialize xdot display state
         self._path = '/'
-        self._widget.path_input.addItem('/')
         self._needs_zoom = True
         self._structure_changed = True
-        self._needs_refresh = True
         self._max_depth = -1
         self._show_all_transitions = False
         self._label_wrapper = textwrap.TextWrapper(40,break_long_words=True)
+        self._graph_needs_refresh = True
+        self._tree_needs_refresh = True
 
 
-        # Start a thread in the background to update the server list
         self._keep_running = True
-        #self._server_list_thread = threading.Thread(target=self._update_server_list)
-        #self._server_list_thread.start()
-        self._server_list_thread = WorkerThread(self._update_server_list)
-        self._server_list_thread.start()
 
-        # Start a thread in the background to update the graph display
-        #self._update_graph_thread = threading.Thread(target=self._update_graph)
-        #self._update_graph_thread.start()
-        self._update_graph_thread = WorkerThread(self._update_graph)
-        self._update_graph_thread.start()
-        # Start a thread in the background to update the._widget.tree display
-        #self._update._widget.tree_thread = threading.Thread(target=self._update._widget.tree)
-        #self._update._widget.tree_thread.start()
-        self._update_tree_thread = WorkerThread(self._update_tree)
-        self._update_tree_thread.start()
+        self._update_server_list()
+        self._update_graph()
+        self._update_tree()
+
+        # Start a timer to update the server list
+        self._server_timer = QTimer(self)
+        self._server_timer.timeout.connect(self._update_server_list)
+        self._server_timer.start(1000)
+
+        # Start a timer to update the graph display
+        self._graph_timer = QTimer(self)
+        self._graph_timer.timeout.connect(self._update_graph)
+        self._graph_timer.start(1093)
+
+        # Start a timer to update the._widget.tree display
+        self._tree_timer = QTimer(self)
+        self._tree_timer.timeout.connect(self._update_tree)
+        self._tree_timer.start(1217)
+
+        self._widget.tree.show()
+
+    def _handle_ud_set_path(self):
+        """Event: Set a sInitial Stae Button Pressed."""
+        self._widget.path_input.setCurrentIndex(self._widget.path_input.findText(self._widget.ud_path_input.currentText()))
+        self._path = self._widget.path_input.currentText()
+        self._graph_needs_refresh = True
+
+    def _handle_ud_path(self):
+        """Event: User Data selection combo box changed"""
+        path_input_str = self._widget.ud_path_input.currentText()
+        #Check the path is non-zero length
+        if len(path_input_str) > 0:
+            # Split the path (state:outcome), and get the state path
+            path = path_input_str.split(':')[0]
+
+            # Get the container corresponding to this path, since userdata is
+            # stored in the containers
+            if path not in self._containers:
+                parent_path = get_parent_path(path)
+            else:
+                parent_path = path
+
+            if parent_path in self._containers:
+                # Get the container
+                container = self._containers[path_input_str]
+
+                # Store the scroll position and selection
+                #pos = self.ud_txt.HitTestPos(wx.Point(0,0))
+                #sel = self.ud_txt.GetSelection()
+
+                # Generate the userdata string
+                ud_str = ''
+                for (k,v) in container._local_data._data.iteritems():
+                    ud_str += str(k)+": "
+                    vstr = str(v)
+                    # Add a line break if this is a multiline value
+                    if vstr.find('\n') != -1:
+                        ud_str += '\n'
+                    ud_str+=vstr+'\n\n'
+                #Display the user data
+                self._widget.ud_text_browser.setPlainText(ud_str)
+                self._widget.ud_text_browser.show()
 
     def _update_server_list(self):
         """Update the list of known SMACH introspection servers."""
-        while self._keep_running:
-            # Discover new servers
-            #TODO limit to namespace in top bar
-            #if not self._widget.restrict_ns.isChecked():
+        # Discover new servers
+        if self._widget.restrict_ns.isChecked():
+            server_names = [self._widget.namespace_input.currentText()[0:-1]]
+            #self._status_subs = {}
+        else:
             server_names = self._client.get_servers()
-            new_server_names = [sn for sn in server_names if sn not in self._status_subs]
-            #else:
-            #    new_server_names = [self._widget.namespace_input.currentText()[0:(-1)]]
-            # Create subscribers for newly discovered servers
-            for server_name in new_server_names:
 
-                # Create a subscriber for the plan structure (topology) published by this server
-                self._structure_subs[server_name] = rospy.Subscriber(
-                        server_name+smach_ros.introspection.STRUCTURE_TOPIC,
-                        SmachContainerStructure,
-                        callback = self._structure_msg_update,
-                        callback_args = server_name,
-                        queue_size=50)
+        new_server_names = [sn for sn in server_names if sn not in self._status_subs]
 
-                # Create a subscriber for the active states in the plan published by this server
-                self._status_subs[server_name] = rospy.Subscriber(
-                        server_name+smach_ros.introspection.STATUS_TOPIC,
-                        SmachContainerStatus,
-                        callback = self._status_msg_update,
-                        queue_size=50)
+        # Create subscribers for newly discovered servers
+        for server_name in new_server_names:
 
-            # This doesn't need to happen very often
-            rospy.sleep(1.0)
+            # Create a subscriber for the plan structure (topology) published by this server
+            self._structure_subs[server_name] = rospy.Subscriber(
+                    server_name+smach_ros.introspection.STRUCTURE_TOPIC,
+                    SmachContainerStructure,
+                    callback = self._structure_msg_update,
+                    callback_args = server_name,
+                    queue_size=50)
+
+            # Create a subscriber for the active states in the plan published by this server
+            self._status_subs[server_name] = rospy.Subscriber(
+                    server_name+smach_ros.introspection.STATUS_TOPIC,
+                    SmachContainerStatus,
+                    callback = self._status_msg_update,
+                    queue_size=50)
 
     def _structure_msg_update(self, msg, server_name):
         """Update the structure of the SMACH plan (re-generate the dotcode)."""
@@ -323,16 +361,15 @@ class Smach(Plugin):
             # Append the path to the appropriate widgets
             self._append_new_path(path)
 
-            # We need to redraw thhe graph if this container's parent is already known
+            # We need to redraw the graph if this container's parent is already known
             if parent_path in self._containers:
                 needs_redraw = True
 
-        # Update the graph if necessary
         if needs_redraw:
-            with self._update_cond:
-                self._structure_changed = True
-                self._needs_zoom = True # TODO: Make it so you can disable this
-                self._update_cond.notify_all()
+            self._structure_changed = True
+            self._needs_zoom = True # TODO: Make it so you can disable this
+            self._tree_needs_refresh = True
+            self._graph_needs_refresh = True
 
     def _status_msg_update(self, msg):
         """Process status messages."""
@@ -350,8 +387,8 @@ class Smach(Plugin):
             # Get the container and check if the status update requires regeneration
             container = self._containers[path]
             if container.update_status(msg):
-                with self._update_cond:
-                    self._update_cond.notify_all()
+                self._graph_needs_refresh = True
+                self._tree_needs_refresh = True
 
             # TODO: Is this necessary?
             """path_input_str = self.path_input.GetValue()
@@ -363,9 +400,9 @@ class Smach(Plugin):
 
     def _append_new_path(self, path):
         """Append a new path to the path selection widgets"""
-        self._widget.path_input.addItem(path)
-        self._widget.ud_path_input.addItem(path)
-        return
+        if ((not self._widget.restrict_ns.isChecked()) or ((self._widget.restrict_ns.isChecked()) and (self._widget.namespace_input.currentText() in path)) or (path == self._widget.namespace_input.currentText()[0:-1])):
+            self._widget.path_input.addItem(path)
+            self._widget.ud_path_input.addItem(path)
 
     def _update_graph(self):
         """This thread continuously updates the graph when it changes.
@@ -379,74 +416,67 @@ class Smach(Plugin):
           2: The status of the SMACH plans has changed. In this case, we only
           need to change the styles of the graph.
         """
-        while self._keep_running and not rospy.is_shutdown():
-            with self._update_cond:
-                # Wait for the update condition to be triggered
-                self._update_cond.wait()
-
+        if self._keep_running and self._graph_needs_refresh and not rospy.is_shutdown():
                 # Get the containers to update
-                containers_to_update = {}
-                # Check if the path that's currently being viewed is in the
-                # list of existing containers
-                if self._path in self._containers:
-                    # Some non-root path
-                    containers_to_update = {self._path:self._containers[self._path]}
-                elif self._path == '/':
-                    # Root path
-                    containers_to_update = self._top_containers
+            containers_to_update = {}
+            # Check if the path that's currently being viewed is in the
+            # list of existing containers
+            if self._path in self._containers:
+                # Some non-root path
+                containers_to_update = {self._path:self._containers[self._path]}
+            elif self._path == '/':
+                # Root path
+                containers_to_update = self._top_containers
 
-                # Check if we need to re-generate the dotcode (if the structure changed)
-                # TODO: needs_zoom is a misnomer
-                if self._structure_changed or self._needs_zoom:
-                    dotstr = "digraph {\n\t"
-                    dotstr += ';'.join([
-                        "compound=true",
-                        "outputmode=nodesfirst",
-                        "labeljust=l",
-                        "nodesep=0.5",
-                        "minlen=2",
-                        "mclimit=5",
-                        "clusterrank=local",
-                        "ranksep=0.75",
-                        # "remincross=true",
-                        # "rank=sink",
-                        "ordering=\"\"",
-                        ])
-                    dotstr += ";\n"
+            # Check if we need to re-generate the dotcode (if the structure changed)
+            # TODO: needs_zoom is a misnomer
+            if self._structure_changed or self._needs_zoom or self._graph_needs_refresh:
+                dotstr = "digraph {\n\t"
+                dotstr += ';'.join([
+                    "compound=true",
+                    "outputmode=nodesfirst",
+                    "labeljust=l",
+                    "nodesep=0.5",
+                    "minlen=2",
+                    "mclimit=5",
+                    "clusterrank=local",
+                    "ranksep=0.75",
+                    # "remincross=true",
+                    # "rank=sink",
+                    "ordering=\"\"",
+                    ])
+                dotstr += ";\n"
 
-                    # Generate the rest of the graph
-                    # TODO: Only re-generate dotcode for containers that have changed
-                    for path,container in containers_to_update.items():
-                        dotstr += container.get_dotcode(
-                                self._selected_paths,[],
-                                0,self._max_depth,
-                                self._containers,
-                                self._show_all_transitions,
-                                self._label_wrapper)
-
-                    # The given path isn't available
-                    if len(containers_to_update) == 0:
-                        dotstr += '"__empty__" [label="Path not available.", shape="plaintext"]'
-
-                    dotstr += '\n}\n'
-
-                    # Set the dotcode to the new dotcode, reset the flags
-                    self.set_dotcode(dotstr,zoom=False)
-                    self._structure_changed = False
-
-                # Update the styles for the graph if there are any updates
-                #TODO
-                """for path,container in containers_to_update.items():
-                    container.set_styles(
-                            self._selected_paths,
+                # Generate the rest of the graph
+                # TODO: Only re-generate dotcode for containers that have changed
+                for path,container in containers_to_update.items():
+                    dotstr += container.get_dotcode(
+                            self._selected_paths,[],
                             0,self._max_depth,
-                            self.widget.items_by_url,
-                            self.widget.subgraph_shapes,
-                            self._containers)
-                """
-                # Redraw xdot widget
-                #TODO force OnIdle
-                #self.widget.Refresh()
+                            self._containers,
+                            self._show_all_transitions,
+                            self._label_wrapper)
+
+                # The given path isn't available
+                if len(containers_to_update) == 0:
+                    dotstr += '"__empty__" [label="Path not available.", shape="plaintext"]'
+
+                dotstr += '\n}\n'
+
+                # Set the dotcode to the new dotcode, reset the flags
+                self.set_dotcode(dotstr,zoom=False)
+                self._structure_changed = False
+                self._graph_needs_refresh = False
+
+            # Update the styles for the graph if there are any updates
+            for path,container in containers_to_update.items():
+                container.set_styles(
+                        self._selected_paths,
+                        0,self._max_depth,
+                        self._widget.xdot_widget.items_by_url,
+                        self._widget.xdot_widget.subgraph_shapes,
+                        self._containers)
+            #self.set_dotcode(dotstr)
 
     def set_dotcode(self, dotcode, zoom=True):
         """Set the xdot view's dotcode and refresh the display."""
@@ -457,33 +487,28 @@ class Smach(Plugin):
                 self._widget.xdot_widget.zoom_to_fit()
                 self._needs_zoom = False
             # Set the refresh flag
-            self._needs_refresh = True
-            #wx.PostEvent(self.GetEventHandler(), wx.IdleEvent())
-
+            #self._needs_refresh = True
 
     def _update_tree(self):
         """Update the tree view."""
-        while self._keep_running and not rospy.is_shutdown():
-            with self._update_cond:
-                self._update_cond.wait()
-                #TODO replace with qt delete._widget.tree
-                self._widget.tree.clear()
-                self._tree_nodes = {}
-                for path,tc in self._top_containers.iteritems():
+        if self._keep_running and self._tree_needs_refresh and not rospy.is_shutdown():
+            self._tree_nodes = {}
+            self._widget.tree.clear()
+            for path,tc in self._top_containers.iteritems():
+                if ((not self._widget.restrict_ns.isChecked()) or ((self._widget.restrict_ns.isChecked()) and (self._widget.namespace_input.currentText() in path)) or (path == self._widget.namespace_input.currentText()[0:-1])):
                     self.add_to_tree(path, None)
-                self._widget.tree.show()
+            self._tree_needs_refresh = False
+            self._widget.tree.sortItems(0,0)
 
     def add_to_tree(self, path, parent):
         """Add a path to the tree view."""
-        #TODO
         if parent is None:
-            self._qlist = [get_label(path)]
-            container = QtGui.QTreeWidgetItem(self._widget.tree, self._qlist)
-            #self._widget.tree.addTopLevelItem(get_label(path))
+            container = QTreeWidgetItem()
+            container.setText(0, self._containers[path]._label)
+            self._widget.tree.addTopLevelItem(container)
         else:
-            self._qlist = [get_label(path)]
-            container = QtGui.QTreeWidgetItem(parent, self._qlist)
-            #self._widget.tree.AppendItem(parent,get_label(path))
+            container = QTreeWidgetItem(parent)
+            container.setText(0, self._containers[path]._label)
 
         # Add children to_tree
         for label in self._containers[path]._children:
@@ -491,25 +516,21 @@ class Smach(Plugin):
             if child_path in self._containers.keys():
                 self.add_to_tree(child_path, container)
             else:
-                self._qlist = [label]
-                QtGui.QTreeWidgetItem(container, self._qlist)
-                #self._widget.tree.AppendItem(container,label)
-
+                child = QTreeWidgetItem(container)
+                child.setText(0, label)
 
     def append_tree(self, container, parent = None):
         """Append an item to the tree view."""
-        #TODO
         if not parent:
-            self._qlist = [container._label]
-            node = QtGui.QTreeWidgetItem(self._widget.tree, self._qlist)
-            #self._widget.tree.addTopLevelItem(container._label)
+            node = QTreeWidgetItem()
+            node.setText(0, container._label)
+            self._widget.tree.addTopLevelItem(node)
             for child_label in container._children:
-                self._qlist = [child_label]
-                QtGui.QTreeWidgetItem(node, self._qlist)
-                #self._widget.tree.AppendItem(node,child_label)
-
+                child = QTreeWidgetItem(node)
+                child.setText(0, child_label)
 
     def _update_thread_run(self):
+        """Update the list of namespaces."""
         _, _, topic_types = rospy.get_master().getTopicTypes()
         self._topic_dict = dict(topic_types)
         keys = list(self._topic_dict.keys())
@@ -522,40 +543,84 @@ class Smach(Plugin):
 
     @Slot()
     def _update_finished(self):
+        """Enable namespace combo box."""
         self._widget.namespace_input.setEnabled(True)
 
-    def _handle_refresh_clicked(self, checked):
+    def _handle_ns_changed(self):
+        """If namespace selection is changed then reinitialize everything."""
         ns = self._widget.namespace_input.currentText()
         if len(ns) > 0:
             if self._ns != ns:
                 self._actions_connected = False
                 self._ns = ns
                 self.enable_widgets(False)
-
                 rospy.loginfo("Creating action clients on namespace '%s'..." % ns)
-
                 rospy.loginfo("Action clients created.")
                 self._actions_connected = True
                 self.enable_widgets(True)
 
+                self._containers = {}
+                self._top_containers = {}
+                self._selected_paths = []
+
+                self._structure_subs = {}
+                self._status_subs = {}
+
+                self._needs_zoom = True
+                self._structure_changed = True
+                self._max_depth = -1
+                self._show_all_transitions = False
+                self._graph_needs_refresh = True
+                self._tree_needs_refresh = True
+
+                #self._widget.namespace_input.clear()
+                self._widget.path_input.clear()
+                self._widget.ud_path_input.clear()
+                self._widget.tree.clear()
+
     @Slot()
     def refresh_combo_box(self):
+        """Refresh namespace combo box."""
         self._update_thread.kill()
+        self._containers = {}
+        self._top_containers = {}
+        self._selected_paths = []
+
+        self._structure_subs = {}
+        self._status_subs = {}
+
+        self._needs_zoom = True
+        self._structure_changed = True
+        self._max_depth = -1
+        self._show_all_transitions = False
+        self._graph_needs_refresh = True
+        self._tree_needs_refresh = True
+
+        #self._widget.namespace_input.clear()
+        self._widget.path_input.clear()
+        self._widget.ud_path_input.clear()
+        self._widget.tree.clear()
         if self._widget.restrict_ns.isChecked():
             self._widget.namespace_input.setEnabled(False)
             self._widget.namespace_input.setEditText('updating...')
+            self._widget.ns_refresh_button.setEnabled(True)
             self._update_thread.start()
         else:
             self._widget.namespace_input.setEnabled(False)
             self._widget.namespace_input.setEditText('Unrestricted')
+            self._widget.ns_refresh_button.setEnabled(False)
+            self._graph_needs_refresh = True
+            self._tree_needs_refresh = True
+            self._widget.path_input.addItem('/')
 
     def _handle_path_changed(self, checked):
+        """If the path input is changed, update graph."""
         self._path = self._widget.path_input.currentText()
-        with self._update_cond:
-            self._update_cond.notifyAll()
-        #TODO trigger thread?
+        self._graph_needs_refresh = True
+        self._needs_zoom = True
 
     def enable_widgets(self, enable):
+        """Enable all widgets."""
         self._widget.xdot_widget.setEnabled(enable)
         self._widget.path_input.setEnabled(enable)
         self._widget.depth_input.setEnabled(enable)

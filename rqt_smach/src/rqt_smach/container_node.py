@@ -12,6 +12,7 @@ import rospy
 from smach_msgs.msg import SmachContainerStatus,SmachContainerInitialStatusCmd,SmachContainerStructure
 
 import xdot
+import xdot.xdot_qt
 import smach
 import smach_ros
 
@@ -20,7 +21,7 @@ import smach_ros
 from qt_gui.plugin import Plugin
 from python_qt_binding import loadUi
 from python_qt_binding.QtGui import QWidget
-from python_qt_binding.QtGui import QPalette
+from python_qt_binding.QtGui import QPalette,QPen
 from python_qt_binding.QtGui import QStyle,QApplication,QMouseEvent
 from python_qt_binding.QtCore import Qt
 from python_qt_binding.QtCore import Signal,Slot
@@ -43,7 +44,6 @@ import rqt_smach
 import smach_msgs.msg
 
 from actionlib_msgs.msg import GoalStatus
-
 def graph_attr_string(attrs):
     """Generate an xdot graph attribute string."""
     attrs_strs = ['"'+str(k)+'"="'+str(v)+'"' for k,v in attrs.iteritems()]
@@ -76,7 +76,6 @@ def hex2t(color_str):
 class ContainerNode():
     """
     This class represents a given container in a running SMACH system. 
-
     Its primary use is to generate dotcode for a SMACH container. It has
     methods for responding to structure and status messages from a SMACH
     introspection server, as well as methods for updating the styles of a 
@@ -162,7 +161,7 @@ class ContainerNode():
 
     def get_dotcode(self, selected_paths, closed_paths, depth, max_depth, containers, show_all, label_wrapper, attrs={}):
         """Generate the dotcode representing this container.
-        
+
         @param selected_paths: The paths to nodes that are selected
         @closed paths: The paths that shouldn't be expanded
         @param depth: The depth to start traversing the tree
@@ -318,9 +317,8 @@ class ContainerNode():
 
     def set_styles(self, selected_paths, depth, max_depth, items, subgraph_shapes, containers):
         """Update the styles for a list of containers without regenerating the dotcode.
-
         This function is called recursively to update an entire tree.
-        
+
         @param selected_paths: A list of paths to nodes that are currently selected.
         @param depth: The depth to start traversing the tree
         @param max_depth: The depth to traverse into the tree
@@ -335,7 +333,6 @@ class ContainerNode():
             container_shapes = subgraph_shapes['cluster_'+self._path]
             container_color = (0,0,0,0)
             container_fillcolor = (0,0,0,0)
-
             for shape in container_shapes:
                 shape.pen.color = container_color
                 shape.pen.fillcolor = container_fillcolor
@@ -374,7 +371,7 @@ class ContainerNode():
                 if child_path in selected_paths:
                     child_color = hex2t('#FB000DFF')
 
-                # Generate dotcode for child containers 
+                # Generate dotcode for child containers
                 if child_path in containers:
                     subgraph_id = 'cluster_'+child_path
                     if subgraph_id in subgraph_shapes:
@@ -389,7 +386,6 @@ class ContainerNode():
                                 v = 0.85
                             child_fillcolor = [v,v,v,1.0]
 
-                        
                         for shape in subgraph_shapes['cluster_'+child_path]:
                             pen = shape.pen
                             if len(pen.color) > 3:
@@ -412,7 +408,7 @@ class ContainerNode():
                 else:
                     if child_path in items:
                         for shape in items[child_path].shapes:
-                            if not isinstance(shape,xdot.xdot.TextShape):
+                            if not isinstance(shape,xdot.xdot_qt.TextShape):
                                 shape.pen.color = child_color
                                 shape.pen.fillcolor = child_fillcolor
                                 shape.pen.linewidth = child_linewidth
