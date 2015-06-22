@@ -1,0 +1,15 @@
+<library path="src">
+  <class name="rqt_smach" type="rqt_smach.rqt_smach.Smach" base_class_type="rqt_gui_py::Plugin">
+    <description>
+      An RQT plugin for interacting with the smach.
+    </description>
+    <qtgui>
+      <group>
+        <label>Control</label>
+      </group>
+      <label>Smach</label>
+      <icon type="theme">system-help</icon>
+      <statustip>Use to visualize dot graphs over ROS.</statustip>
+    </qtgui>
+  </class>
+</library>
