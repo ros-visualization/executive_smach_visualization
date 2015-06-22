@@ -181,14 +181,21 @@ class Smach(Plugin):
         palette.setColor(QPalette.Background, Qt.white)
         self._widget.setPalette(palette)
 
-        #TODO do for both combo boxes
         self._widget.namespace_input.currentIndexChanged.connect(self._handle_ns_changed)
         self._widget.ns_refresh_button.clicked.connect(self.refresh_combo_box)
         self._widget.restrict_ns.stateChanged.connect(self.refresh_combo_box)
         self._widget.ud_path_input.currentIndexChanged.connect(self._handle_ud_path)
         self._widget.ud_set_initial.clicked.connect(self._handle_ud_set_path)
         self._widget.ud_text_browser.setReadOnly(1)
-        #TODO if unchecked do handle_ns_changed
+
+        #Depth and width spinners:
+        self._widget.depth_input.setRange(-1, 1337)
+        self._widget.depth_input.setValue(-1)
+        self._widget.depth_input.valueChanged.connect(self._set_depth)
+
+        self._widget.label_width_input.setRange(1, 1337)
+        self._widget.label_width_input.setValue(40)
+        self._widget.label_width_input.valueChanged.connect(self._set_width)
 
         self._widget.tree.setColumnCount(1)
         self._widget.tree.setHeaderLabels(["Containers"])
@@ -251,6 +258,17 @@ class Smach(Plugin):
         self._tree_timer.start(1217)
 
         self._widget.tree.show()
+
+    def _set_depth(self):
+        self._max_depth = self._widget.depth_input.value()
+        self._graph_needs_refresh = True
+        self._tree_needs_refresh = True
+        self._needs_zoom = True
+
+    def _set_width(self):
+        self._label_wrapper.width = self._widget.label_width_input.value()
+        self._needs_zoom = True
+        self._graph_needs_refresh = True
 
     def _handle_ud_set_path(self):
         """Event: Set a sInitial Stae Button Pressed."""
@@ -591,7 +609,6 @@ class Smach(Plugin):
 
         self._needs_zoom = True
         self._structure_changed = True
-        self._max_depth = -1
         self._show_all_transitions = False
         self._graph_needs_refresh = True
         self._tree_needs_refresh = True
