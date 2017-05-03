@@ -21,11 +21,17 @@
 
 from xdot import *
 
+
 __all__ = ['WxDotWindow', 'WxDotFrame']
 
 # We need to get the wx version with built-in cairo support
 import wxversion
-wxversion.select("2.8")
+if wxversion.checkInstalled("2.8"):
+    wxversion.select("2.8")
+else:
+    print("wxversion 2.8 is not installed, installed versions are {}".format(wxversion.getInstalled()))
+    # workaround for ws.App segmentation fault (http://trac.wxwidgets.org/ticket/15898)
+    gtk.remove_log_handlers()
 import wx
 import wx.lib.wxcairo as wxcairo
 

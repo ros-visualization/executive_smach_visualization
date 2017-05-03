@@ -44,7 +44,10 @@ import StringIO
 import colorsys
 
 import wxversion
-wxversion.select("2.8")
+if wxversion.checkInstalled("2.8"):
+    wxversion.select("2.8")
+else:
+    print("wxversion 2.8 is not installed, installed versions are {}".format(wxversion.getInstalled()))
 import wx
 import wx.richtext
 
