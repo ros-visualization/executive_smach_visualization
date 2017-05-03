@@ -30,7 +30,6 @@
 #
 # Author: Jonathan Bohren 
 
-import roslib; roslib.load_manifest('smach_viewer')
 import rospy
 
 from smach_msgs.msg import SmachContainerStatus,SmachContainerInitialStatusCmd,SmachContainerStructure
@@ -51,7 +50,27 @@ import wx.richtext
 
 import textwrap
 
-import xdot
+## this import system (or ros-released) xdot
+# import xdot
+## need to import currnt package, but not to load this file
+# http://stackoverflow.com/questions/6031584/importing-from-builtin-library-when-module-with-same-name-exists
+def import_non_local(name, custom_name=None):
+    import imp, sys
+
+    custom_name = custom_name or name
+
+    path = filter(lambda x: x != os.path.dirname(os.path.abspath(__file__)), sys.path)
+    f, pathname, desc = imp.find_module(name, path)
+
+    module = imp.load_module(custom_name, f, pathname, desc)
+    if f:
+        f.close()
+
+    return module
+
+smach_viewer = import_non_local('smach_viewer')
+from smach_viewer import xdot
+##
 import smach
 import smach_ros
 
