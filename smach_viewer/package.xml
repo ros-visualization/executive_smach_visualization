@@ -11,6 +11,7 @@
     messages</a> to gather information from running state machines.
   </description>
   <maintainer email="jbo@jhu.edu">Jonathan Bohren</maintainer>
+  <maintainer email="ros-orphaned-packages@googlegroups.com">ROS Orphaned Package Maintainers</maintainer>
 
   <license>BSD</license>
 
