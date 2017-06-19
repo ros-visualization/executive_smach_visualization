@@ -2,6 +2,34 @@
 Changelog for package smach_viewer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* add ROS Orphaned Package Maintainers to maintainer tag (`#15 <https://github.com/ros-visualization/executive_smach_visualization/issues/15>`_)
+* copy xdot from https://github.com/jbohren/xdot, (`#14 <https://github.com/ros-visualization/executive_smach_visualization/issues/14>`_)
+
+  * support for Qt5 (Kinetic)
+  * update CMakeLists.txt, package.xml, setup.py, smach_viewer.py for new xdot structure
+  * add necessary lines in xdot/__init_\_.py https://github.com/jbohren/xdot/pull/14
+  * copy xdot from https://github.com/jbohren/xdot, since system xdot is released in rosdep key https://github.com/ros/rosdistro/pull/4976
+
+* add auto focus to subgraph mode button (`#11 <https://github.com/ros-visualization/executive_smach_visualization/issues/11>`_)
+
+  * add launch option for 'auto focus to subgraph' mode as default
+  * add auto focus to subgraph mode button
+
+* feature: Add ability to save the dot graph for further processing (`#8 <https://github.com/ros-visualization/executive_smach_visualization/issues/8>`_)
+
+  * forgot two imports
+  * Add option to save dot graph to file
+    Add a icon which enables the user to save the currently displayed
+    graph as a .dot file in the currently hardcoded ros_home/dotfiles,
+    which should normaly be $HOME/.ros/dotfiles
+    From there it can be converted with the dot commandline tool into
+    png, pdf or others without the problem of quality loss.
+
+* wx viewer: checking to make sure item urls are strings to prevent crash (`#1 <https://github.com/jbohren/executive_smach_visualization/pull/1>`_)
+* Contributors: Yuki Furuta, Jonathan Bohren, Kei Okada, Markus Bajones
+
 2.0.0 (2014-04-17)
 ------------------
 * Removing rosbuild support and old useless test
