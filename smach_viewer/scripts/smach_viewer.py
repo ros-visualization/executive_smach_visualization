@@ -31,6 +31,7 @@
 # Author: Jonathan Bohren 
 
 import rospy
+import rospkg
 
 from smach_msgs.msg import SmachContainerStatus,SmachContainerInitialStatusCmd,SmachContainerStructure
 
@@ -42,6 +43,7 @@ import pprint
 import copy
 import StringIO
 import colorsys
+import time
 
 import wxversion
 if wxversion.checkInstalled("2.8"):
@@ -466,7 +468,8 @@ class SmachViewerFrame(wx.Frame):
         self._top_containers = {}
         self._update_cond = threading.Condition()
         self._needs_refresh = True
-        
+        self.dotstr = ''
+
         vbox = wx.BoxSizer(wx.VERTICAL)
 
 
@@ -542,9 +545,12 @@ class SmachViewerFrame(wx.Frame):
         toolbar.AddControl(wx.StaticText(toolbar,-1,"    "))
         toolbar.AddLabelTool(wx.ID_HELP, 'Help',
                 wx.ArtProvider.GetBitmap(wx.ART_HELP,wx.ART_OTHER,(16,16)) )
+        toolbar.AddLabelTool(wx.ID_SAVE, 'Save',
+                wx.ArtProvider.GetBitmap(wx.ART_FILE_SAVE,wx.ART_OTHER,(16,16)) )
         toolbar.Realize()
 
         self.Bind(wx.EVT_TOOL, self.ShowControlsDialog, id=wx.ID_HELP)
+        self.Bind(wx.EVT_TOOL, self.SaveDotGraph, id=wx.ID_SAVE)
 
         # Create dot graph widget
         self.widget = xdot.wxxdot.WxDotWindow(graph_view, -1)
@@ -902,7 +908,7 @@ class SmachViewerFrame(wx.Frame):
                         dotstr += '"__empty__" [label="Path not available.", shape="plaintext"]'
 
                     dotstr += '\n}\n'
-
+                    self.dotstr = dotstr
                     # Set the dotcode to the new dotcode, reset the flags
                     self.set_dotcode(dotstr,zoom=False)
                     self._structure_changed = False
@@ -1010,6 +1016,16 @@ class SmachViewerFrame(wx.Frame):
                 "Pan: Arrow Keys\nZoom: PageUp / PageDown\nZoom To Fit: F\nRefresh: R",
                 'Keyboard Controls', wx.OK)
         dial.ShowModal()
+
+    def SaveDotGraph(self,event):
+        timestr = time.strftime("%Y%m%d-%H%M%S")
+        directory = rospkg.get_ros_home()+'/dotfiles/'
+        if not os.path.exists(directory):
+                os.makedirs(directory)
+        filename = directory+timestr+'.dot'
+        print('Writing to file: %s' % filename)
+        with open(filename, 'w') as f:
+            f.write(self.dotstr)
 
     def OnExit(self, event):
         pass
