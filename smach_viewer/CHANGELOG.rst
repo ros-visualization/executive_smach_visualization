@@ -2,8 +2,8 @@
 Changelog for package smach_viewer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.0.1 (2017-06-20)
+------------------
 * add ROS Orphaned Package Maintainers to maintainer tag (`#15 <https://github.com/ros-visualization/executive_smach_visualization/issues/15>`_)
 * copy xdot from https://github.com/jbohren/xdot, (`#14 <https://github.com/ros-visualization/executive_smach_visualization/issues/14>`_)
 
