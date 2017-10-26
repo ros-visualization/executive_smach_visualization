@@ -1055,5 +1055,5 @@ def main():
 
 if __name__ == '__main__':
     rospy.init_node('smach_viewer',anonymous=False, disable_signals=True,log_level=rospy.INFO)
-
+    sys.argv = rospy.myargv()
     main()
