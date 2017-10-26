@@ -2,8 +2,8 @@
 Changelog for package smach_viewer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.0.2 (2017-10-26)
+------------------
 * Allow launching from a launch file, use rospy.myargv() to remove ROS  remapping arguments (`#16 <https://github.com/ros-visualization/executive_smach_visualization/issues/16>`_)
   * Use rospy.myargv() to remove ROS remapping arguments  Required to allow launching from a launch file, otherwise get errors of the type:
   ```
