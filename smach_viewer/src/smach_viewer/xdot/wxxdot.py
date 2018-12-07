@@ -30,8 +30,6 @@ if wxversion.checkInstalled("2.8"):
     wxversion.select("2.8")
 else:
     print("wxversion 2.8 is not installed, installed versions are {}".format(wxversion.getInstalled()))
-    # workaround for ws.App segmentation fault (http://trac.wxwidgets.org/ticket/15898)
-    gtk.remove_log_handlers()
 import wx
 import wx.lib.wxcairo as wxcairo
 
@@ -189,7 +187,8 @@ class WxDotWindow(wx.Panel):
 
     #print dc
     ctx = wxcairo.ContextFromDC(dc)
-    ctx = pangocairo.CairoContext(ctx)
+    #ctx = pangocairo.CairoContext(ctx)
+
     #print "DRAW"
 
     # Get widget size
@@ -450,7 +449,7 @@ class WxDotWindow(wx.Panel):
     xdotcode, error = p.communicate(dotcode)
     if p.returncode != 0:
       print "ERROR PARSING DOT CODE", error
-      dialog = gtk.MessageDialog(type=gtk.MESSAGE_ERROR,
+      dialog = Gtk.MessageDialog(type=gtk.MESSAGE_ERROR,
                      message_format=error,
                      buttons=gtk.BUTTONS_OK)
       dialog.set_title('Dot Viewer')
