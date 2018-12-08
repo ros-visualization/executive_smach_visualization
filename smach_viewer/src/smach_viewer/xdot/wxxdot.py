@@ -461,7 +461,7 @@ class WxDotWindow(wx.Panel):
 
       # Store references to all the items
       self.items_by_url = {}
-      for item in self.graph.nodes + self.graph.edges:
+      for item in self.graph.nodes: # + self.graph.edges:
         if item.url is not None:
           self.items_by_url[item.url] = item
 
