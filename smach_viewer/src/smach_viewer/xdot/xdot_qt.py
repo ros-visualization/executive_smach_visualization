@@ -31,17 +31,21 @@ import colorsys
 import time
 import re
 
+from python_qt_binding import QT_BINDING_VERSION
+
 #from PySide.QtCore import *
 #from PySide.QtGui import *
-try:
+if QT_BINDING_VERSION.startswith('4'):
     from PyQt4 import *
     from PyQt4.QtCore import *
     from PyQt4.QtGui import *
-except:
+elif QT_BINDING_VERSION.startswith('5'):
     from PyQt5 import *
     from PyQt5.QtCore import *
     from PyQt5.QtGui import *
     from python_qt_binding.QtWidgets import QWidget, QMainWindow
+else:
+    raise ValueError('Unsupported Qt version, supported versions: PyQt4, PyQt5')
 
 #from python_qt_binding import  *
 #from python_qt_binding.QtCore import  *
@@ -1347,6 +1351,12 @@ class DotWidget(QWidget):
 
     def __init__(self,  parent=None):
         super(DotWidget,  self).__init__(parent)
+
+        # qt version flag
+        self.qt4_version = False
+        if QT_BINDING_VERSION.startswith('4'):
+            self.qt4_version = True
+
         self.graph = Graph()
         self.openfilename = None
 
@@ -1639,10 +1649,7 @@ class DotWidget(QWidget):
         if event.button() == Qt.LeftButton and self.is_click(event):
             x, y = event.x(), event.y()
             url = self.get_url(x, y)
-            if url is not None:
-                self.emit(SIGNAL("clicked"), unicode(url.url), event)
-            else:
-                self.emit(SIGNAL("clicked"), 'none', event)
+            if url is None:
                 jump = self.get_jump(x, y)
                 if jump is not None:
                     self.animate_to(jump.x, jump.y)
@@ -1652,10 +1659,7 @@ class DotWidget(QWidget):
         if event.button() == Qt.RightButton and self.is_click(event):
             x, y = event.x(), event.y()
             url = self.get_url(x, y)
-            if url is not None:
-                self.emit(SIGNAL("right_clicked"), unicode(url.url), event)
-            else:
-                self.emit(SIGNAL("right_clicked"), 'none', event)
+            if url is None:
                 jump = self.get_jump(x, y)
                 if jump is not None:
                     self.animate_to(jump.x, jump.y)
@@ -1668,11 +1672,21 @@ class DotWidget(QWidget):
         return False
 
     def wheelEvent(self, event):
-        if event.delta() > 0:
-            self.zoom_image(self.zoom_ratio * self.ZOOM_INCREMENT,
+        if self.qt4_version:
+            # PyQt4
+            if event.delta() > 0:
+                self.zoom_image(self.zoom_ratio * self.ZOOM_INCREMENT,
                             pos=(event.x(), event.y()))
-        if event.delta() < 0:
-            self.zoom_image(self.zoom_ratio / self.ZOOM_INCREMENT,
+            if event.delta() < 0:
+                self.zoom_image(self.zoom_ratio / self.ZOOM_INCREMENT,
+                            pos=(event.x(), event.y()))
+        else:
+            # PyQt5
+            if event.angleDelta().y() > 0:
+                self.zoom_image(self.zoom_ratio * self.ZOOM_INCREMENT,
+                            pos=(event.x(), event.y()))
+            if event.angleDelta().y() < 0:
+                self.zoom_image(self.zoom_ratio / self.ZOOM_INCREMENT,
                             pos=(event.x(), event.y()))
 
     def mouseMoveEvent(self, event):
