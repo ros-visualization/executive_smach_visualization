@@ -1,0 +1,2 @@
+# ignore autom generated python byte code
+*.pyc
