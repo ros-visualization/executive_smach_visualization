@@ -1649,10 +1649,7 @@ class DotWidget(QWidget):
         if event.button() == Qt.LeftButton and self.is_click(event):
             x, y = event.x(), event.y()
             url = self.get_url(x, y)
-            if url is not None:
-                self.emit(SIGNAL("clicked"), unicode(url.url), event)
-            else:
-                self.emit(SIGNAL("clicked"), 'none', event)
+            if url is None:
                 jump = self.get_jump(x, y)
                 if jump is not None:
                     self.animate_to(jump.x, jump.y)
@@ -1662,10 +1659,7 @@ class DotWidget(QWidget):
         if event.button() == Qt.RightButton and self.is_click(event):
             x, y = event.x(), event.y()
             url = self.get_url(x, y)
-            if url is not None:
-                self.emit(SIGNAL("right_clicked"), unicode(url.url), event)
-            else:
-                self.emit(SIGNAL("right_clicked"), 'none', event)
+            if url is None:
                 jump = self.get_jump(x, y)
                 if jump is not None:
                     self.animate_to(jump.x, jump.y)
