@@ -30,6 +30,7 @@
   <!-- originally depends on xdot : https://github.com/jbohren/xdot/blob/2.0.1/package.xml#L25-L26 -->
   <run_depend>wxpython</run_depend>
   <run_depend>graphviz</run_depend>
+  <run_depend>python-gtk2</run_depend>
 
   <export>
 
