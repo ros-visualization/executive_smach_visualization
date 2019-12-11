@@ -2,6 +2,20 @@
 Changelog for package smach_viewer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* use xlabel to show better layout
+* fix https://github.com/ros-visualization/executive_smach_visualization/commit/8e7dd857049695098ed2562b82811db338d0421d#diff-0594a813c7145f4e9e802a6224262e35 and https://github.com/ros-visualization/executive_smach_visualization/commit/c158e3093500c4cdd15654746cf007dba7a094e4
+* add url to edges and jump, add unescape
+* check if item is Url, sometimes it is Jump
+* add necessary packages
+* xdot 0.7 does not have url in edges
+* add subgraph_shapes, which is introduced in jbohren's version of xdot
+* udpate to gtk3.0
+  see https://github.com/jrfonseca/xdot.py/commit/dbc0e556cffb164d65b4e56bab8bb9af7f023778#diff-044dd4123ac853930ad0086da07ef7b6L123
+  the xdot.py file was copied from version 0.7 (https://raw.githubusercontent.com/jrfonseca/xdot.py/0.7/xdot.py)
+* Contributors: Kei Okada
+
 2.0.2 (2017-10-26)
 ------------------
 * Allow launching from a launch file, use rospy.myargv() to remove ROS  remapping arguments (`#16 <https://github.com/ros-visualization/executive_smach_visualization/issues/16>`_)

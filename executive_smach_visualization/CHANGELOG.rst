@@ -2,6 +2,11 @@
 Changelog for package executive_smach_visualization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge remote-tracking branch 'origin/indigo-devel' into melodic-devel
+* Contributors: Kei Okada
+
 2.0.2 (2017-10-26)
 ------------------
 
