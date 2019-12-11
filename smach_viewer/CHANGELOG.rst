@@ -2,8 +2,8 @@
 Changelog for package smach_viewer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+3.0.0 (2019-12-11)
+------------------
 * use xlabel to show better layout
 * fix https://github.com/ros-visualization/executive_smach_visualization/commit/8e7dd857049695098ed2562b82811db338d0421d#diff-0594a813c7145f4e9e802a6224262e35 and https://github.com/ros-visualization/executive_smach_visualization/commit/c158e3093500c4cdd15654746cf007dba7a094e4
 * add url to edges and jump, add unescape
