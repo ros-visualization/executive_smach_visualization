@@ -255,7 +255,8 @@ class ContainerNode():
                         'fillcolor':'#FE464f',#'#EDC2CC',
                         'color':'#780006',#'#EBAEBB',
                         'fontcolor':'#780006',#'#EBAEBB',
-                        'label':'\\n'.join(label_wrapper.wrap(outcome_label)),
+                        'label':'',
+                        'xlabel':'\\n'.join(label_wrapper.wrap(outcome_label)),
                         'URL':':'.join([self._path,outcome_label])
                         }
                 dotstr += '"%s" %s;\n' % (outcome_path,attr_string(outcome_attrs))
@@ -320,7 +321,8 @@ class ContainerNode():
                     edge_attrs = {
                             'URL':':'.join([from_path,outcome_label,to_path]),
                             'fontsize':'12',
-                            'label':'\\n'.join(label_wrapper.wrap(outcome_label))}
+                            'label':'',
+                            'xlabel':'\\n'.join(label_wrapper.wrap(outcome_label))}
                     edge_attrs['style'] = 'setlinewidth(2)'
 
                     # Hide implicit
