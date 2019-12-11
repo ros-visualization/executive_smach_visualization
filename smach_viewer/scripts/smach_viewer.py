@@ -701,7 +701,7 @@ class SmachViewerFrame(wx.Frame):
         self._structure_changed = True
         if not self._auto_focus:
             self._set_path('/')
-            self._max_depth(-1)
+            self._set_max_depth(-1)
         self.update_graph()
 
     def select_cb(self, item, event):
@@ -904,7 +904,7 @@ class SmachViewerFrame(wx.Frame):
                                 self._containers,
                                 self._show_all_transitions,
                                 self._label_wrapper)
-                    else:
+                    if len(containers_to_update) == 0:
                         dotstr += '"__empty__" [label="Path not available.", shape="plaintext"]'
 
                     dotstr += '\n}\n'
