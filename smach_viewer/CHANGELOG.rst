@@ -2,6 +2,18 @@
 Changelog for package smach_viewer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.0.2 (2017-10-26)
+------------------
+* Allow launching from a launch file, use rospy.myargv() to remove ROS  remapping arguments (`#16 <https://github.com/ros-visualization/executive_smach_visualization/issues/16>`_)
+  * Use rospy.myargv() to remove ROS remapping arguments  Required to allow launching from a launch file, otherwise get errors of the type:
+  ```
+    usage: smach_viewer.py [-h] [-f]
+    smach_viewer.py: error: unrecognized arguments: __name:=smach_viewer
+  ```
+    * Solved 'Cannot start smach_viewer.py in launch file' problem `#17 <https://github.com/ros-visualization/executive_smach_visualization/issues/17>`_
+
+* Contributors: Kartik Mohta
+
 2.0.1 (2017-06-20)
 ------------------
 * add ROS Orphaned Package Maintainers to maintainer tag (`#15 <https://github.com/ros-visualization/executive_smach_visualization/issues/15>`_)
