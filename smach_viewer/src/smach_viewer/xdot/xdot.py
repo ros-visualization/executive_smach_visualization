@@ -387,13 +387,14 @@ class Url(object):
 
 class Jump(object):
 
-    def __init__(self, item, x, y, highlight=None):
+    def __init__(self, item, x, y, highlight=None, url=None):
         self.item = item
         self.x = x
         self.y = y
         if highlight is None:
             highlight = set([item])
         self.highlight = highlight
+        self.url = url
 
 
 class Element(CompoundShape):
@@ -455,11 +456,12 @@ def square_distance(x1, y1, x2, y2):
 
 class Edge(Element):
 
-    def __init__(self, src, dst, points, shapes):
+    def __init__(self, src, dst, points, shapes, url):
         Element.__init__(self, shapes)
         self.src = src
         self.dst = dst
         self.points = points
+        self.url = url
 
     RADIUS = 10
 
@@ -478,9 +480,9 @@ class Edge(Element):
 
     def get_jump(self, x, y):
         if self.is_inside_begin(x, y):
-            return Jump(self, self.dst.x, self.dst.y, highlight=set([self, self.dst]))
+            return Jump(self, self.dst.x, self.dst.y, highlight=set([self, self.dst]),url=self.url)
         if self.is_inside_end(x, y):
-            return Jump(self, self.src.x, self.src.y, highlight=set([self, self.src]))
+            return Jump(self, self.src.x, self.src.y, highlight=set([self, self.src]),url=self.url)
         return None
 
     def __repr__(self):
@@ -561,7 +563,7 @@ class XDotAttrParser:
 
     def __init__(self, parser, buf):
         self.parser = parser
-        self.buf = buf
+        self.buf = self.unescape(buf)
         self.pos = 0
         
         self.pen = Pen()
@@ -569,6 +571,11 @@ class XDotAttrParser:
 
     def __nonzero__(self):
         return self.pos < len(self.buf)
+
+    def unescape(self, buf):
+        buf = buf.replace('\\"', '"')
+        buf = buf.replace('\\n', '\n')
+        return buf
 
     def read_code(self):
         pos = self.buf.find(b" ", self.pos)
@@ -1287,10 +1294,11 @@ class XDotParser(DotParser):
             if attr in attrs:
                 parser = XDotAttrParser(self, attrs[attr])
                 shapes.extend(parser.parse())
+        url = attrs.get('URL', None)
         if shapes:
             src = self.node_by_name[src_id]
             dst = self.node_by_name[dst_id]
-            self.edges.append(Edge(src, dst, points, shapes))
+            self.edges.append(Edge(src, dst, points, shapes, url))
 
     def parse(self):
         DotParser.parse(self)

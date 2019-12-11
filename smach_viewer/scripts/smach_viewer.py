@@ -708,7 +708,7 @@ class SmachViewerFrame(wx.Frame):
         """Event: Click to select a graph node to display user data and update the graph."""
 
         # Only set string status
-        if not isinstance(item, smach_viewer.xdot.xdot.Url) or not type(item.url) is str:
+        if not type(item.url) is str:
             return
 
         self.statusbar.SetStatusText(item.url)
