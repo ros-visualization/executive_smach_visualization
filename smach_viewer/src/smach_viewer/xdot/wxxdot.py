@@ -448,7 +448,7 @@ class WxDotWindow(wx.Panel):
     )
     xdotcode, error = p.communicate(dotcode)
     if p.returncode != 0:
-      print "ERROR PARSING DOT CODE", error
+      print("ERROR PARSING DOT CODE {}".format(error))
       dialog = Gtk.MessageDialog(type=gtk.MESSAGE_ERROR,
                      message_format=error,
                      buttons=gtk.BUTTONS_OK)
@@ -468,8 +468,8 @@ class WxDotWindow(wx.Panel):
       # Store references to subgraph states
       self.subgraph_shapes = self.graph.subgraph_shapes
 
-    except ParseError, ex:
-      print "ERROR PARSING XDOT CODE"
+    except ParseError as ex:
+      print("ERROR PARSING XDOT CODE")
       dialog = gtk.MessageDialog(type=gtk.MESSAGE_ERROR,
                      message_format=str(ex),
                      buttons=gtk.BUTTONS_OK)
@@ -547,11 +547,11 @@ Refresh: R",
       try:
         self.open_file(path)
 
-      except IOError, error:
+      except IOError as error:
         dlg = wx.MessageDialog(self, 'Error opening file\n' + str(error))
         dlg.ShowModal()
 
-      except UnicodeDecodeError, error:
+      except UnicodeDecodeError as error:
         dlg = wx.MessageDialog(self, 'Error opening file\n' + str(error))
         dlg.ShowModal()
 
@@ -575,7 +575,7 @@ Refresh: R",
       fp = file(filename, 'rt')
       self.set_dotcode(fp.read(), filename)
       fp.close()
-    except IOError, ex:
+    except IOError as ex:
       """
       dlg = gtk.MessageDialog(type=gtk.MESSAGE_ERROR,
                   message_format=str(ex),
