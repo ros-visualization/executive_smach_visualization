@@ -2,6 +2,13 @@
 Changelog for package smach_viewer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#30 <https://github.com/ros-visualization/executive_smach_visualization//issues/30>`_ from k-okada/add_noetic
+  add noetic, remove indigo/lunar
+* fix syntax for python3
+* Contributors: Kei Okada
+
 3.0.0 (2019-12-11)
 ------------------
 * use xlabel to show better layout
