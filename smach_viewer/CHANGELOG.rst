@@ -2,8 +2,8 @@
 Changelog for package smach_viewer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+3.0.1 (2020-08-25)
+------------------
 * Merge pull request `#30 <https://github.com/ros-visualization/executive_smach_visualization//issues/30>`_ from k-okada/add_noetic
   add noetic, remove indigo/lunar
 * fix syntax for python3
