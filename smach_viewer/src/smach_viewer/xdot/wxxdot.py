@@ -30,8 +30,6 @@ if wxversion.checkInstalled("2.8"):
     wxversion.select("2.8")
 else:
     print("wxversion 2.8 is not installed, installed versions are {}".format(wxversion.getInstalled()))
-    # workaround for ws.App segmentation fault (http://trac.wxwidgets.org/ticket/15898)
-    gtk.remove_log_handlers()
 import wx
 import wx.lib.wxcairo as wxcairo
 
@@ -189,7 +187,8 @@ class WxDotWindow(wx.Panel):
 
     #print dc
     ctx = wxcairo.ContextFromDC(dc)
-    ctx = pangocairo.CairoContext(ctx)
+    #ctx = pangocairo.CairoContext(ctx)
+
     #print "DRAW"
 
     # Get widget size
@@ -449,8 +448,8 @@ class WxDotWindow(wx.Panel):
     )
     xdotcode, error = p.communicate(dotcode)
     if p.returncode != 0:
-      print "ERROR PARSING DOT CODE", error
-      dialog = gtk.MessageDialog(type=gtk.MESSAGE_ERROR,
+      print("ERROR PARSING DOT CODE {}".format(error))
+      dialog = Gtk.MessageDialog(type=gtk.MESSAGE_ERROR,
                      message_format=error,
                      buttons=gtk.BUTTONS_OK)
       dialog.set_title('Dot Viewer')
@@ -462,15 +461,15 @@ class WxDotWindow(wx.Panel):
 
       # Store references to all the items
       self.items_by_url = {}
-      for item in self.graph.nodes + self.graph.edges:
+      for item in self.graph.nodes: # + self.graph.edges:
         if item.url is not None:
           self.items_by_url[item.url] = item
 
       # Store references to subgraph states
       self.subgraph_shapes = self.graph.subgraph_shapes
 
-    except ParseError, ex:
-      print "ERROR PARSING XDOT CODE"
+    except ParseError as ex:
+      print("ERROR PARSING XDOT CODE")
       dialog = gtk.MessageDialog(type=gtk.MESSAGE_ERROR,
                      message_format=str(ex),
                      buttons=gtk.BUTTONS_OK)
@@ -548,11 +547,11 @@ Refresh: R",
       try:
         self.open_file(path)
 
-      except IOError, error:
+      except IOError as error:
         dlg = wx.MessageDialog(self, 'Error opening file\n' + str(error))
         dlg.ShowModal()
 
-      except UnicodeDecodeError, error:
+      except UnicodeDecodeError as error:
         dlg = wx.MessageDialog(self, 'Error opening file\n' + str(error))
         dlg.ShowModal()
 
@@ -576,7 +575,7 @@ Refresh: R",
       fp = file(filename, 'rt')
       self.set_dotcode(fp.read(), filename)
       fp.close()
-    except IOError, ex:
+    except IOError as ex:
       """
       dlg = gtk.MessageDialog(type=gtk.MESSAGE_ERROR,
                   message_format=str(ex),

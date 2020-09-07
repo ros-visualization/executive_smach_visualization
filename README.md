@@ -1,2 +1,2 @@
-executive_smach_visualization [![Build Status](https://travis-ci.org/ros-visualization/executive_smach_visualization.svg?branch=indigo-devel)](https://travis-ci.org/ros-visualization/executive_smach_visualization)
+executive_smach_visualization [![Build Status](https://travis-ci.com/ros-visualization/executive_smach_visualization.svg?branch=melodic-devel)](https://travis-ci.com/ros-visualization/executive_smach_visualization)
 =====================================================================================================================================================================================================================
