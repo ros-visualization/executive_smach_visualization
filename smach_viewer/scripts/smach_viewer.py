@@ -44,6 +44,7 @@ import copy
 import StringIO
 import colorsys
 import time
+import base64
 
 import wxversion
 if wxversion.checkInstalled("2.8"):
@@ -182,14 +183,14 @@ class ContainerNode():
         # Unpack the user data
         while not rospy.is_shutdown():
             try:
-                self._local_data._data = pickle.loads(msg.local_data)
+                self._local_data._data = pickle.loads(base64.b64decode(msg.local_data))
                 break
             except ImportError as ie:
                 # This will only happen once for each package
                 modulename = ie.args[0][16:]
                 packagename = modulename[0:modulename.find('.')]
                 roslib.load_manifest(packagename)
-                self._local_data._data = pickle.loads(msg.local_data)
+                self._local_data._data = pickle.loads(base64.b64decode(msg.local_data))
 
         # Store the info string
         self._info = msg.info
