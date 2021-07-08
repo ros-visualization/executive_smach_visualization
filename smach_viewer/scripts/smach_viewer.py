@@ -34,6 +34,7 @@ import rospy
 import rospkg
 
 from smach_msgs.msg import SmachContainerStatus,SmachContainerInitialStatusCmd,SmachContainerStructure
+from sensor_msgs.msg import Image
 
 import sys
 import os
@@ -44,6 +45,8 @@ import copy
 import StringIO
 import colorsys
 import time
+import cv_bridge
+import numpy as np
 
 import wxversion
 if wxversion.checkInstalled("2.8"):
@@ -615,6 +618,8 @@ class SmachViewerFrame(wx.Frame):
         self._structure_subs = {}
         self._status_subs = {}
 
+        self._pub = rospy.Publisher('~image', Image, queue_size=1)
+
         self.Bind(wx.EVT_IDLE,self.OnIdle)
         self.Bind(wx.EVT_CLOSE,self.OnQuit)
 
@@ -634,6 +639,11 @@ class SmachViewerFrame(wx.Frame):
         self._update_tree_thread = threading.Thread(target=self._update_tree)
         self._update_tree_thread.start()
 
+        self.timer = wx.Timer(self, 0)
+        self.Bind(wx.EVT_TIMER, self.OnTimer)
+        self.timer.Start(200)
+
+
     def OnQuit(self,event):
         """Quit Event: kill threads and wait for join."""
         with self._update_cond:
@@ -643,7 +653,6 @@ class SmachViewerFrame(wx.Frame):
         self._server_list_thread.join()
         self._update_graph_thread.join()
         self._update_tree_thread.join()
-        
         event.Skip()
 
     def update_graph(self):
@@ -1015,6 +1024,21 @@ class SmachViewerFrame(wx.Frame):
             #if current_value == '' and len(self._servers) > 0:
             #    self.server_combo.SetStringSelection(self._servers[0])
             #    self.set_server(self._servers[0])
+
+    def OnTimer(self, event):
+        # image
+        context = wx.ClientDC(self)
+        memory = wx.MemoryDC()
+        x, y = self.ClientSize
+        bitmap = wx.EmptyBitmap(x, y, -1)
+        memory.SelectObject(bitmap)
+        memory.Blit(0, 0, x, y, context, 0, 0)
+        memory.SelectObject(wx.NullBitmap)
+        buf = wx.ImageFromBitmap(bitmap).GetDataBuffer()
+        img = np.frombuffer(buf, dtype=np.uint8)
+        bridge = cv_bridge.CvBridge()
+        img_msg = bridge.cv2_to_imgmsg(img.reshape((y, x, 3)), encoding='rgb8')
+        self._pub.publish(img_msg)
 
     def ShowControlsDialog(self,event):
         dial = wx.MessageDialog(None,
