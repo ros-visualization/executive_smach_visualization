@@ -32,6 +32,7 @@
 
 import rospy
 import rospkg
+import roslib
 
 from smach_msgs.msg import SmachContainerStatus,SmachContainerInitialStatusCmd,SmachContainerStructure
 
@@ -44,6 +45,7 @@ import copy
 import StringIO
 import colorsys
 import time
+import base64
 
 import wxversion
 if wxversion.checkInstalled("2.8"):
@@ -161,6 +163,14 @@ class ContainerNode():
 
         return needs_update
 
+    def _load_local_data(self, msg):
+        """Unpack the user data"""
+        try:
+            local_data = pickle.loads(msg.local_data)
+        except KeyError:
+            local_data = pickle.loads(base64.b64decode(msg.local_data.encode('utf-8')))
+        return local_data
+
     def update_status(self, msg):
         """Update the known userdata and active state set and return True if the graph needs to be redrawn."""
 
@@ -182,14 +192,14 @@ class ContainerNode():
         # Unpack the user data
         while not rospy.is_shutdown():
             try:
-                self._local_data._data = pickle.loads(msg.local_data)
+                self._local_data._data = self._load_local_data(msg)
                 break
             except ImportError as ie:
                 # This will only happen once for each package
                 modulename = ie.args[0][16:]
                 packagename = modulename[0:modulename.find('.')]
                 roslib.load_manifest(packagename)
-                self._local_data._data = pickle.loads(msg.local_data)
+                self._local_data._data = self._load_local_data(msg)
 
         # Store the info string
         self._info = msg.info
