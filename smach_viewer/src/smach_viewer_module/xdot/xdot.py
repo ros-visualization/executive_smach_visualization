@@ -836,8 +836,8 @@ class Scanner:
         flags = re.DOTALL
         if self.ignorecase:
             flags |= re.IGNORECASE
-        self.tokens_re = re.compile(
-            b'|'.join([b'(' + regexp + b')' for type, regexp, test_lit in self.tokens]),
+        self.tokens_re = re.compile(str(
+            b'|'.join([b'(' + regexp + b')' for type, regexp, test_lit in self.tokens])),
              flags
         )
 
@@ -873,7 +873,7 @@ class Lexer:
     scanner = None
     tabsize = 8
 
-    newline_re = re.compile(br'\r\n?|\n')
+    newline_re = re.compile(r'\r\n?|\n')
 
     def __init__(self, buf = None, pos = 0, filename = None, fp = None):
         if fp is not None:
@@ -915,7 +915,6 @@ class Lexer:
             col = self.col
 
             type, text, endpos = self.scanner.next(self.buf, pos)
-            assert isinstance(text, bytes)
             assert pos + len(text) == endpos
             self.consume(text)
             type, text = self.filter(type, text)
@@ -940,7 +939,7 @@ class Lexer:
 
         # update column number
         while True:
-            tabpos = text.find(b'\t', pos)
+            tabpos = text.find('\t', pos)
             if tabpos == -1:
                 break
             self.col += tabpos - pos
