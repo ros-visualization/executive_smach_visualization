@@ -19,42 +19,39 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from xdot import *
+from smach_viewer_module.xdot.xdot import *
 
 
 __all__ = ['WxDotWindow', 'WxDotFrame']
 
 # We need to get the wx version with built-in cairo support
-import wxversion
-if wxversion.checkInstalled("2.8"):
-    wxversion.select("2.8")
-else:
-    print("wxversion 2.8 is not installed, installed versions are {}".format(wxversion.getInstalled()))
+
 import wx
 import wx.lib.wxcairo as wxcairo
 
 # This is a crazy hack to get this to work on 64-bit systems
-if 'wxMac' in wx.PlatformInfo:
-  pass # Implement if necessary
-elif 'wxMSW' in wx.PlatformInfo:
-  pass # Implement if necessary
-elif 'wxGTK' in wx.PlatformInfo:
-  import ctypes
-  gdkLib = wx.lib.wxcairo._findGDKLib()
-  gdkLib.gdk_cairo_create.restype = ctypes.c_void_p
+# if 'wxMac' in wx.PlatformInfo:
+#   pass # Implement if necessary
+# elif 'wxMSW' in wx.PlatformInfo:
+#   pass # Implement if necessary
+# elif 'wxGTK' in wx.PlatformInfo:
+#   import ctypes
+#   print(dir(wx.lib.wxcairo))
+#   gdkLib = wx.lib.wxcairo._findGDKLib()
+#   gdkLib.gdk_cairo_create.restype = ctypes.c_void_p
 
 class WxDragAction(object):
   def __init__(self, dot_widget):
     self.dot_widget = dot_widget
 
   def on_button_press(self, event):
-    x,y = event.GetPositionTuple()
+    x,y = event.GetEventObject().GetPosition()
     self.startmousex = self.prevmousex = x
     self.startmousey = self.prevmousey = y
     self.start()
 
   def on_motion_notify(self, event):
-    x,y = event.GetPositionTuple()
+    x,y = event.GetEventObject().GetPosition()
     deltax = self.prevmousex - x
     deltay = self.prevmousey - y
     self.drag(deltax, deltay)
@@ -62,7 +59,7 @@ class WxDragAction(object):
     self.prevmousey = y
 
   def on_button_release(self, event):
-    x,y = event.GetPositionTuple()
+    x,y = event.GetEventObject().GetPosition()
     self.stopmousex = x
     self.stopmousey = y
     self.stop()
@@ -271,7 +268,7 @@ class WxDotWindow(wx.Panel):
 
   ### Cursor manipulation
   def set_cursor(self, cursor_type):
-    self.cursor = wx.StockCursor(cursor_type)
+    self.cursor = wx.Cursor(cursor_type)
     self.SetCursor(self.cursor)
 
   ### Zooming methods
@@ -363,7 +360,7 @@ class WxDotWindow(wx.Panel):
     return WxNullAction(self)
 
   def OnMouse(self, event):
-    x,y = event.GetPositionTuple()
+    x,y = event.GetEventObject().GetPosition()
 
     item = None
 
@@ -436,8 +433,6 @@ class WxDotWindow(wx.Panel):
     self.filter = filter
 
   def set_dotcode(self, dotcode, filename='<stdin>'):
-    if isinstance(dotcode, unicode):
-      dotcode = dotcode.encode('utf8')
     p = subprocess.Popen(
       [self.filter, '-Txdot'],
       stdin=subprocess.PIPE,
@@ -551,10 +546,6 @@ Refresh: R",
         dlg = wx.MessageDialog(self, 'Error opening file\n' + str(error))
         dlg.ShowModal()
 
-      except UnicodeDecodeError as error:
-        dlg = wx.MessageDialog(self, 'Error opening file\n' + str(error))
-        dlg.ShowModal()
-
     open_dlg.Destroy()
 
   def OnExit(self, event):
@@ -587,4 +578,3 @@ Refresh: R",
 
   def set_filter(self, filter):
     self.widget.set_filter(filter)
-

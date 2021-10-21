@@ -41,7 +41,7 @@ except:
     from PyQt5 import *
     from PyQt5.QtCore import *
     from PyQt5.QtGui import *
-    from python_qt_binding.QtWidgets import QWidget, QMainWindow
+    from PyQt5.QtWidgets import *
 
 #from python_qt_binding import  *
 #from python_qt_binding.QtCore import  *
@@ -1388,8 +1388,6 @@ class DotWidget(QWidget):
         self.filter = filter
 
     def set_dotcode(self, dotcode, filename='<stdin>',center=True):
-        if isinstance(dotcode, unicode):
-            dotcode = dotcode.encode('utf8')
         p = subprocess.Popen(
             [self.filter, '-Txdot'],
             stdin=subprocess.PIPE,
@@ -1640,7 +1638,7 @@ class DotWidget(QWidget):
             x, y = event.x(), event.y()
             url = self.get_url(x, y)
             if url is not None:
-                self.emit(SIGNAL("clicked"), unicode(url.url), event)
+                self.emit(SIGNAL("clicked"), url.url, event)
             else:
                 self.emit(SIGNAL("clicked"), 'none', event)
                 jump = self.get_jump(x, y)
@@ -1653,7 +1651,7 @@ class DotWidget(QWidget):
             x, y = event.x(), event.y()
             url = self.get_url(x, y)
             if url is not None:
-                self.emit(SIGNAL("right_clicked"), unicode(url.url), event)
+                self.emit(SIGNAL("right_clicked"), url.url, event)
             else:
                 self.emit(SIGNAL("right_clicked"), 'none', event)
                 jump = self.get_jump(x, y)
@@ -1816,7 +1814,7 @@ class DotWindow(QMainWindow):
         if filename is None:
             action = self.sender()
             if isinstance(action, QAction):
-                filename = unicode(action.data().toString())
+                filename = action.data().toString()
             else:
                 return
         try:
@@ -1831,9 +1829,9 @@ class DotWindow(QMainWindow):
         dir = os.path.dirname(self.filename) \
                 if self.filename is not None else "."
         formats = ["*.dot"]
-        filename = unicode(QFileDialog.getOpenFileName(self,
+        filename = QFileDialog.getOpenFileName(self,
                             "Open dot File", dir,
-                            "Dot files (%s)" % " ".join(formats)))
+                            "Dot files (%s)" % " ".join(formats))
         if filename:
             self.open_file(filename)
 

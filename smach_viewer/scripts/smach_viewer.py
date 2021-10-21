@@ -3,10 +3,10 @@
 # Copyright (c) 2010, Willow Garage, Inc.
 # All rights reserved.
 # Copyright (c) 2013, Jonathan Bohren, The Johns Hopkins University
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
-# 
+#
 #   * Redistributions of source code must retain the above copyright
 #       notice, this list of conditions and the following disclaimer.
 #   * Redistributions in binary form must reproduce the above copyright
@@ -15,7 +15,7 @@
 #   * Neither the name of the Willow Garage, Inc. nor the names of its
 #       contributors may be used to endorse or promote products derived from
 #       this software without specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -28,7 +28,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-# Author: Jonathan Bohren 
+# Author: Jonathan Bohren
 
 import rospy
 import rospkg
@@ -41,40 +41,20 @@ import threading
 import pickle
 import pprint
 import copy
-import StringIO
+try:
+    from StringIO import StringIO ## for Python 2
+except ImportError:
+    from io import StringIO ## for Python 3
 import colorsys
 import time
 
-import wxversion
-if wxversion.checkInstalled("2.8"):
-    wxversion.select("2.8")
-else:
-    print("wxversion 2.8 is not installed, installed versions are {}".format(wxversion.getInstalled()))
 import wx
 import wx.richtext
 
 import textwrap
+import base64
 
-## this import system (or ros-released) xdot
-# import xdot
-## need to import currnt package, but not to load this file
-# http://stackoverflow.com/questions/6031584/importing-from-builtin-library-when-module-with-same-name-exists
-def import_non_local(name, custom_name=None):
-    import imp, sys
-
-    custom_name = custom_name or name
-
-    path = filter(lambda x: x != os.path.dirname(os.path.abspath(__file__)), sys.path)
-    f, pathname, desc = imp.find_module(name, path)
-
-    module = imp.load_module(custom_name, f, pathname, desc)
-    if f:
-        f.close()
-
-    return module
-
-smach_viewer = import_non_local('smach_viewer')
-from smach_viewer import xdot
+from smach_viewer_module import xdot
 ##
 import smach
 import smach_ros
@@ -82,12 +62,12 @@ import smach_ros
 ### Helper Functions
 def graph_attr_string(attrs):
     """Generate an xdot graph attribute string."""
-    attrs_strs = ['"'+str(k)+'"="'+str(v)+'"' for k,v in attrs.iteritems()]
+    attrs_strs = ['"'+str(k)+'"="'+str(v)+'"' for k,v in attrs.items()]
     return ';\n'.join(attrs_strs)+';\n'
 
 def attr_string(attrs):
     """Generate an xdot node attribute string."""
-    attrs_strs = ['"'+str(k)+'"="'+str(v)+'"' for k,v in attrs.iteritems()]
+    attrs_strs = ['"'+str(k)+'"="'+str(v)+'"' for k,v in attrs.items()]
     return ' ['+(', '.join(attrs_strs))+']'
 
 def get_parent_path(path):
@@ -111,11 +91,11 @@ def hex2t(color_str):
 
 class ContainerNode():
     """
-    This class represents a given container in a running SMACH system. 
+    This class represents a given container in a running SMACH system.
 
     Its primary use is to generate dotcode for a SMACH container. It has
     methods for responding to structure and status messages from a SMACH
-    introspection server, as well as methods for updating the styles of a 
+    introspection server, as well as methods for updating the styles of a
     graph once it's been drawn.
     """
     def __init__(self, server_name, msg):
@@ -182,7 +162,9 @@ class ContainerNode():
         # Unpack the user data
         while not rospy.is_shutdown():
             try:
-                self._local_data._data = pickle.loads(msg.local_data)
+                data = msg.local_data
+                data = base64.b64decode(data)
+                self._local_data._data = pickle.loads(data)
                 break
             except ImportError as ie:
                 # This will only happen once for each package
@@ -198,7 +180,7 @@ class ContainerNode():
 
     def get_dotcode(self, selected_paths, closed_paths, depth, max_depth, containers, show_all, label_wrapper, attrs={}):
         """Generate the dotcode representing this container.
-        
+
         @param selected_paths: The paths to nodes that are selected
         @closed paths: The paths that shouldn't be expanded
         @param depth: The depth to start traversing the tree
@@ -289,10 +271,10 @@ class ContainerNode():
                     dotstr += '"%s" %s;\n' % (child_path, attr_string(child_attrs))
 
             # Iterate over edges
-            internal_edges = zip(
+            internal_edges = list(zip(
                     self._internal_outcomes,
                     self._outcomes_from,
-                    self._outcomes_to)
+                    self._outcomes_to))
 
             # Add edge from container label to initial state
             internal_edges += [('','__proxy__',initial_child) for initial_child in self._initial_states]
@@ -358,7 +340,7 @@ class ContainerNode():
         """Update the styles for a list of containers without regenerating the dotcode.
 
         This function is called recursively to update an entire tree.
-        
+
         @param selected_paths: A list of paths to nodes that are currently selected.
         @param depth: The depth to start traversing the tree
         @param max_depth: The depth to traverse into the tree
@@ -412,7 +394,7 @@ class ContainerNode():
                 if child_path in selected_paths:
                     child_color = hex2t('#FB000DFF')
 
-                # Generate dotcode for child containers 
+                # Generate dotcode for child containers
                 if child_path in containers:
                     subgraph_id = 'cluster_'+child_path
                     if subgraph_id in subgraph_shapes:
@@ -427,7 +409,7 @@ class ContainerNode():
                                 v = 0.85
                             child_fillcolor = [v,v,v,1.0]
 
-                        
+
                         for shape in subgraph_shapes['cluster_'+child_path]:
                             pen = shape.pen
                             if len(pen.color) > 3:
@@ -484,7 +466,7 @@ class SmachViewerFrame(wx.Frame):
         # Create viewer pane
         viewer = wx.Panel(self.content_splitter,-1)
 
-        # Create smach viewer 
+        # Create smach viewer
         nb = wx.Notebook(viewer,-1,style=wx.NB_TOP | wx.WANTS_CHARS)
         viewer_box = wx.BoxSizer()
         viewer_box.Add(nb,1,wx.EXPAND | wx.ALL, 4)
@@ -583,7 +565,7 @@ class SmachViewerFrame(wx.Frame):
 
         self.ud_txt = wx.TextCtrl(self.ud_win,-1,style=wx.TE_MULTILINE | wx.TE_READONLY)
         self.ud_gs.Add(self.ud_txt,1,wx.EXPAND | borders, border)
-        
+
         # Add initial state button
         self.is_button = wx.Button(self.ud_win,-1,"Set as Initial State")
         self.is_button.Bind(wx.EVT_BUTTON, self.on_set_initial_state)
@@ -643,7 +625,7 @@ class SmachViewerFrame(wx.Frame):
         self._server_list_thread.join()
         self._update_graph_thread.join()
         self._update_tree_thread.join()
-        
+
         event.Skip()
 
     def update_graph(self):
@@ -757,7 +739,7 @@ class SmachViewerFrame(wx.Frame):
 
                 # Generate the userdata string
                 ud_str = ''
-                for (k,v) in container._local_data._data.iteritems():
+                for (k,v) in container._local_data._data.items():
                     ud_str += str(k)+": "
                     vstr = str(v)
                     # Add a line break if this is a multiline value
@@ -799,7 +781,7 @@ class SmachViewerFrame(wx.Frame):
 
             # Update the structure of this known container
             needs_redraw = self._containers[path].update_structure(msg)
-        else: 
+        else:
             rospy.logdebug("CONSTRUCTING: "+path)
 
             # Create a new container
@@ -862,7 +844,7 @@ class SmachViewerFrame(wx.Frame):
 
           1: The structure of the SMACH plans has changed, or the display
           settings have been changed. In this case, the dotcode needs to be
-          regenerated. 
+          regenerated.
 
           2: The status of the SMACH plans has changed. In this case, we only
           need to change the styles of the graph.
@@ -902,7 +884,7 @@ class SmachViewerFrame(wx.Frame):
 
                     # Generate the rest of the graph
                     # TODO: Only re-generate dotcode for containers that have changed
-                    for path,tc in containers_to_update.iteritems():
+                    for path,tc in containers_to_update.items():
                         dotstr += tc.get_dotcode(
                                 self._selected_paths,[],
                                 0,self._max_depth,
@@ -919,7 +901,7 @@ class SmachViewerFrame(wx.Frame):
                     self._structure_changed = False
 
                 # Update the styles for the graph if there are any updates
-                for path,tc in containers_to_update.iteritems():
+                for path,tc in containers_to_update.items():
                     tc.set_styles(
                             self._selected_paths,
                             0,self._max_depth,
@@ -950,7 +932,7 @@ class SmachViewerFrame(wx.Frame):
                 self._update_cond.wait()
                 self.tree.DeleteAllItems()
                 self._tree_nodes = {}
-                for path,tc in self._top_containers.iteritems():
+                for path,tc in self._top_containers.items():
                     self.add_to_tree(path, None)
 
     def add_to_tree(self, path, parent):
@@ -1006,8 +988,8 @@ class SmachViewerFrame(wx.Frame):
 
             # This doesn't need to happen very often
             rospy.sleep(1.0)
-            
-            
+
+
             #self.server_combo.AppendItems([s for s in self._servers if s not in current_servers])
 
             # Grab the first server
