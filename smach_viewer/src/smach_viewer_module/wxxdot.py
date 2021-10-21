@@ -19,8 +19,11 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from smach_viewer_module.xdot.xdot import *
-
+from xdot.ui.elements import *
+from xdot.ui.animation import *
+from xdot.dot.lexer import *
+from xdot.dot.parser import *
+import subprocess
 
 __all__ = ['WxDotWindow', 'WxDotFrame']
 
@@ -181,10 +184,13 @@ class WxDotWindow(wx.Panel):
   def OnPaint(self, event):
     """Redraw the graph."""
     dc = wx.PaintDC(self)
-
-    #print dc
+    # print("\ndc:", dir(dc))
     ctx = wxcairo.ContextFromDC(dc)
-    #ctx = pangocairo.CairoContext(ctx)
+    # print("\nctx:",dir(ctx))
+    # print(ctx.get_source())
+
+
+    # ctx = pangocairo.CairoContext(ctx)
 
     #print "DRAW"
 
@@ -461,7 +467,7 @@ class WxDotWindow(wx.Panel):
           self.items_by_url[item.url] = item
 
       # Store references to subgraph states
-      self.subgraph_shapes = self.graph.subgraph_shapes
+      # self.subgraph_shapes = self.graph.subgraph_shapes
 
     except ParseError as ex:
       print("ERROR PARSING XDOT CODE")
@@ -479,7 +485,7 @@ class WxDotWindow(wx.Panel):
   def set_xdotcode(self, xdotcode):
     """Set xdot code."""
     #print xdotcode
-    parser = XDotParser(xdotcode)
+    parser = XDotParser(bytes(xdotcode,"ascii"))
     self.graph = parser.parse()
     self.highlight = None
     #self.zoom_image(self.zoom_ratio, center=True)

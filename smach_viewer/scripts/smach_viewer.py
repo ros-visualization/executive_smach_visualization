@@ -54,8 +54,11 @@ import wx.richtext
 import textwrap
 import base64
 
-from smach_viewer_module import xdot
+from smach_viewer_module import wxxdot
+import xdot
+# from smach_viewer_module import *
 ##
+from xdot.ui.elements import *
 import smach
 import smach_ros
 
@@ -432,7 +435,7 @@ class ContainerNode():
                 else:
                     if child_path in items:
                         for shape in items[child_path].shapes:
-                            if not isinstance(shape,xdot.xdot.TextShape):
+                            if not isinstance(shape,TextShape):
                                 shape.pen.color = child_color
                                 shape.pen.fillcolor = child_fillcolor
                                 shape.pen.linewidth = child_linewidth
@@ -537,7 +540,7 @@ class SmachViewerFrame(wx.Frame):
         self.Bind(wx.EVT_TOOL, self.SaveDotGraph, id=wx.ID_SAVE)
 
         # Create dot graph widget
-        self.widget = xdot.wxxdot.WxDotWindow(graph_view, -1)
+        self.widget = wxxdot.WxDotWindow(graph_view, -1)
 
         gv_vbox.Add(toolbar, 0, wx.EXPAND)
         gv_vbox.Add(self.widget, 1, wx.EXPAND)
@@ -906,7 +909,7 @@ class SmachViewerFrame(wx.Frame):
                             self._selected_paths,
                             0,self._max_depth,
                             self.widget.items_by_url,
-                            self.widget.subgraph_shapes,
+                            [],
                             self._containers)
 
                 # Redraw
