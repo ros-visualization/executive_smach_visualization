@@ -1,0 +1,3 @@
+include:
+    project: tecnalia_robotics-public/gitlab_templates
+    file: ci-templates/auto-rules/noetic-default.yml
