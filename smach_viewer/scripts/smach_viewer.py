@@ -1023,6 +1023,10 @@ class SmachViewerFrame(wx.Frame):
     def set_filter(self, filter):
         self.widget.set_filter(filter)
 
+class MyApp(wx.App):
+    def InitLocale(self):
+        self.ResetLocale()
+
 def main():
     from argparse import ArgumentParser
     p = ArgumentParser()
@@ -1031,7 +1035,7 @@ def main():
                  help="Enable 'AutoFocus to subgraph' as default",
                  dest='enable_auto_focus')
     args = p.parse_args()
-    app = wx.App()
+    app = MyApp()
 
     frame = SmachViewerFrame()
     frame.set_filter('dot')
