@@ -13,3 +13,9 @@ catkin_package(
 # Install targets
 install(PROGRAMS scripts/smach_viewer.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
+# Add rostest
+if(CATKIN_ENABLE_TESTING)
+  find_package(rostest REQUIRED)
+  add_rostest(test/test_smach_viewer.test)
+endif()
