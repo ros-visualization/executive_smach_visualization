@@ -48,13 +48,13 @@ class WxDragAction(object):
     self.dot_widget = dot_widget
 
   def on_button_press(self, event):
-    x,y = event.GetEventObject().GetPosition()
+    x,y = event.GetPosition()
     self.startmousex = self.prevmousex = x
     self.startmousey = self.prevmousey = y
     self.start()
 
   def on_motion_notify(self, event):
-    x,y = event.GetEventObject().GetPosition()
+    x,y = event.GetPosition()
     deltax = self.prevmousex - x
     deltay = self.prevmousey - y
     self.drag(deltax, deltay)
@@ -62,7 +62,7 @@ class WxDragAction(object):
     self.prevmousey = y
 
   def on_button_release(self, event):
-    x,y = event.GetEventObject().GetPosition()
+    x,y = event.GetPosition()
     self.stopmousex = x
     self.stopmousey = y
     self.stop()
@@ -366,7 +366,7 @@ class WxDotWindow(wx.Panel):
     return WxNullAction(self)
 
   def OnMouse(self, event):
-    x,y = event.GetEventObject().GetPosition()
+    x,y = event.GetPosition()
 
     item = None
 
