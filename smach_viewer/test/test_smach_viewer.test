@@ -1,4 +1,0 @@
-<launch>
-  <node name="smach_viewer" pkg="smach_viewer" type="smach_viewer.py" output="screen"/>
-  <test test-name="test_smach_viewer" pkg="smach_viewer" type="test_smach_viewer.py" />
-</launch>
