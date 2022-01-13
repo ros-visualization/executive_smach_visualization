@@ -467,7 +467,7 @@ class WxDotWindow(wx.Panel):
           self.items_by_url[item.url] = item
 
       # Store references to subgraph states
-      # self.subgraph_shapes = self.graph.subgraph_shapes
+      self.subgraph_shapes = self.graph.shapes
 
     except ParseError as ex:
       print("ERROR PARSING XDOT CODE")

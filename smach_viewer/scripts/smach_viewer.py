@@ -932,7 +932,7 @@ class SmachViewerFrame(wx.Frame):
                         self._selected_paths,
                         0, self._max_depth,
                         self.widget.items_by_url,
-                        [],
+                        self.widget.subgraph_shapes,
                         self._containers)
 
                 # Redraw
