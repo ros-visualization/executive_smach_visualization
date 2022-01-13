@@ -5,7 +5,7 @@
 # https://github.com/ros-infrastructure/ros_buildfarm/blob/master/doc/jobs/prerelease_jobs.rst
 # while this doesn't require sudo we don't want to run within a Docker container
 sudo: true
-dist: bionic
+dist: f
 language: python
 python:
   - "3.7"
@@ -24,10 +24,10 @@ install:
   # check python code code compatibility
   - docker run --rm -v$(pwd):/opt/code -ti ${OS_NAME}:${OS_CODE_NAME} bash -c 'set -x; set -e; apt update -qq; apt install -y -qq lsb-release libroslib-dev python 2>&1 >/dev/null; set +x; for file in /etc/catkin/profile.d/*.sh; do echo $file; source $file; done; set -x; apt install -y -qq python${ROS_PYTHON_VERSION} 2>&1 >/dev/null; lsb_release -a; python${ROS_PYTHON_VERSION} --version; set +x; cd /opt/code; EXIT_STATUS=0; for file in $(find -type f); do if [[ $file == *.py || \"$(head -1 $file)\" =~ \"python\" ]]; then echo \"Check if $file is compatible with python${ROS_PYTHON_VERSION}\"; set -x; python${ROS_PYTHON_VERSION} -m py_compile $file || EXIT_STATUS=1; set +x; fi; done; exit $EXIT_STATUS';
   # either install the latest released version of ros_buildfarm
-  - pip install ros_buildfarm
+  # - pip install ros_buildfarm
   # or checkout a specific branch
-  #- git clone -b master https://github.com/ros-infrastructure/ros_buildfarm /tmp/ros_buildfarm
-  #- pip install /tmp/ros_buildfarm
+  - git clone -b master https://github.com/ros-infrastructure/ros_buildfarm /tmp/ros_buildfarm
+  - pip install /tmp/ros_buildfarm
   # checkout catkin for catkin_test_results script
   - git clone https://github.com/ros/catkin /tmp/catkin
   # run devel job for a ROS repository with the same name as this repo
@@ -44,4 +44,3 @@ script:
   - /tmp/catkin/bin/catkin_test_results $JOB_PATH/ws/test_results --all
 notifications:
   email: false
-
