@@ -32,6 +32,28 @@ __all__ = ['WxDotWindow', 'WxDotFrame']
 import wx
 import wx.lib.wxcairo as wxcairo
 
+class MyXDotParser(XDotParser):
+
+  def __init__(self, xdotcode):
+    XDotParser.__init__(self,xdotcode)
+    self.subgraph_shapes = {}
+
+  def parse_subgraph(self):
+    shapes_before = set(self.shapes)
+
+    id = XDotParser.parse_subgraph(self)
+
+    new_shapes = set(self.shapes) - shapes_before
+    self.subgraph_shapes[id.decode()] = [s for s in new_shapes if not any([s in ss for ss in self.subgraph_shapes.values()])]
+
+    return id
+
+  def parse(self):
+    graph = XDotParser.parse(self)
+    graph.subgraph_shapes = self.subgraph_shapes
+    return graph
+
+
 # This is a crazy hack to get this to work on 64-bit systems
 # if 'wxMac' in wx.PlatformInfo:
 #   pass # Implement if necessary
@@ -467,7 +489,7 @@ class WxDotWindow(wx.Panel):
           self.items_by_url[item.url] = item
 
       # Store references to subgraph states
-      self.subgraph_shapes = self.graph.shapes
+      self.subgraph_shapes = self.graph.subgraph_shapes
 
     except ParseError as ex:
       print("ERROR PARSING XDOT CODE")
@@ -485,7 +507,7 @@ class WxDotWindow(wx.Panel):
   def set_xdotcode(self, xdotcode):
     """Set xdot code."""
     #print xdotcode
-    parser = XDotParser(bytes(xdotcode,"ascii"))
+    parser = MyXDotParser(bytes(xdotcode,"ascii"))
     self.graph = parser.parse()
     self.highlight = None
     #self.zoom_image(self.zoom_ratio, center=True)
