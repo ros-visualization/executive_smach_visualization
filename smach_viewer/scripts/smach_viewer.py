@@ -1034,7 +1034,16 @@ class SmachViewerFrame(wx.Frame):
                     dotstr += '\n}\n'
                     self.dotstr = dotstr
                     # Set the dotcode to the new dotcode, reset the flags
-                    self.set_dotcode(dotstr,zoom=False)
+                    try:
+                        self.set_dotcode(dotstr, zoom=False)
+                    except UnicodeDecodeError as e:
+                        # multibyte language only accepts even number
+                        label_width = self._label_wrapper.width
+                        rospy.logerr('label width {} causes error'.format(label_width))
+                        rospy.logerr('maybe multibyte word is in your label.')
+                        rospy.logerr(e)
+                        rospy.logerr('changing width label width to {}'.format(label_width + 1))
+                        self._label_wrapper.width = label_width + 1
                     self._structure_changed = False
 
                 # Update the styles for the graph if there are any updates
