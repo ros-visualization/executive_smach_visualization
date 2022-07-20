@@ -1,3 +1,3 @@
-import wxxdot
-import xdot_qt
+from . import wxxdot
+from . import xdot_qt
 

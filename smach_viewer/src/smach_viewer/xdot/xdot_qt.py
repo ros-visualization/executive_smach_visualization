@@ -924,7 +924,7 @@ class DotParser(Parser):
                 self.parse_stmt()
             self.consume()
         new_shapes = set(self.shapes) - shapes_before
-        self.subgraph_shapes[id] = [s for s in new_shapes if not any([s in ss for ss in self.subgraph_shapes.values()])]
+        self.subgraph_shapes[id] = [s for s in new_shapes if not any([s in ss for ss in list(self.subgraph_shapes.values())])]
         return id
 
     def parse_stmt(self):
