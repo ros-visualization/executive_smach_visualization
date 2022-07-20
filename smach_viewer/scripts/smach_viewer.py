@@ -289,10 +289,10 @@ class ContainerNode():
                     dotstr += '"%s" %s;\n' % (child_path, attr_string(child_attrs))
 
             # Iterate over edges
-            internal_edges = zip(
+            internal_edges = list(zip(
                     self._internal_outcomes,
                     self._outcomes_from,
-                    self._outcomes_to)
+                    self._outcomes_to))
 
             # Add edge from container label to initial state
             internal_edges += [('','__proxy__',initial_child) for initial_child in self._initial_states]
