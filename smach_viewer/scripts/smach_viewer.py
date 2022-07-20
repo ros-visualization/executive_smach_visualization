@@ -32,6 +32,7 @@
 
 import rospy
 import rospkg
+import roslib
 
 from smach_msgs.msg import SmachContainerStatus,SmachContainerInitialStatusCmd,SmachContainerStructure
 from sensor_msgs.msg import Image
@@ -47,6 +48,7 @@ import colorsys
 import time
 import cv_bridge
 import numpy as np
+import base64
 
 import wxversion
 if wxversion.checkInstalled("2.8"):
@@ -85,12 +87,12 @@ import smach_ros
 ### Helper Functions
 def graph_attr_string(attrs):
     """Generate an xdot graph attribute string."""
-    attrs_strs = ['"'+str(k)+'"="'+str(v)+'"' for k,v in attrs.iteritems()]
+    attrs_strs = ['"'+str(k)+'"="'+str(v)+'"' for k,v in attrs.items()]
     return ';\n'.join(attrs_strs)+';\n'
 
 def attr_string(attrs):
     """Generate an xdot node attribute string."""
-    attrs_strs = ['"'+str(k)+'"="'+str(v)+'"' for k,v in attrs.iteritems()]
+    attrs_strs = ['"'+str(k)+'"="'+str(v)+'"' for k,v in attrs.items()]
     return ' ['+(', '.join(attrs_strs))+']'
 
 def get_parent_path(path):
@@ -164,6 +166,14 @@ class ContainerNode():
 
         return needs_update
 
+    def _load_local_data(self, msg):
+        """Unpack the user data"""
+        try:
+            local_data = pickle.loads(msg.local_data)
+        except KeyError:
+            local_data = pickle.loads(base64.b64decode(msg.local_data.encode('utf-8')))
+        return local_data
+
     def update_status(self, msg):
         """Update the known userdata and active state set and return True if the graph needs to be redrawn."""
 
@@ -185,14 +195,14 @@ class ContainerNode():
         # Unpack the user data
         while not rospy.is_shutdown():
             try:
-                self._local_data._data = pickle.loads(msg.local_data)
+                self._local_data._data = self._load_local_data(msg)
                 break
             except ImportError as ie:
                 # This will only happen once for each package
                 modulename = ie.args[0][16:]
                 packagename = modulename[0:modulename.find('.')]
                 roslib.load_manifest(packagename)
-                self._local_data._data = pickle.loads(msg.local_data)
+                self._local_data._data = self._load_local_data(msg)
 
         # Store the info string
         self._info = msg.info
@@ -292,10 +302,10 @@ class ContainerNode():
                     dotstr += '"%s" %s;\n' % (child_path, attr_string(child_attrs))
 
             # Iterate over edges
-            internal_edges = zip(
+            internal_edges = list(zip(
                     self._internal_outcomes,
                     self._outcomes_from,
-                    self._outcomes_to)
+                    self._outcomes_to))
 
             # Add edge from container label to initial state
             internal_edges += [('','__proxy__',initial_child) for initial_child in self._initial_states]
@@ -766,7 +776,7 @@ class SmachViewerFrame(wx.Frame):
 
                 # Generate the userdata string
                 ud_str = ''
-                for (k,v) in container._local_data._data.iteritems():
+                for (k,v) in container._local_data._data.items():
                     ud_str += str(k)+": "
                     vstr = str(v)
                     # Add a line break if this is a multiline value
@@ -798,7 +808,7 @@ class SmachViewerFrame(wx.Frame):
         parent_path = '/'.join(pathsplit[0:-1])
 
         rospy.logdebug("RECEIVED: "+path)
-        rospy.logdebug("CONTAINERS: "+str(self._containers.keys()))
+        rospy.logdebug("CONTAINERS: "+str(list(self._containers.keys())))
 
         # Initialize redraw flag
         needs_redraw = False
@@ -911,7 +921,7 @@ class SmachViewerFrame(wx.Frame):
 
                     # Generate the rest of the graph
                     # TODO: Only re-generate dotcode for containers that have changed
-                    for path,tc in containers_to_update.iteritems():
+                    for path,tc in containers_to_update.items():
                         dotstr += tc.get_dotcode(
                                 self._selected_paths,[],
                                 0,self._max_depth,
@@ -928,7 +938,7 @@ class SmachViewerFrame(wx.Frame):
                     self._structure_changed = False
 
                 # Update the styles for the graph if there are any updates
-                for path,tc in containers_to_update.iteritems():
+                for path,tc in containers_to_update.items():
                     tc.set_styles(
                             self._selected_paths,
                             0,self._max_depth,
@@ -959,7 +969,7 @@ class SmachViewerFrame(wx.Frame):
                 self._update_cond.wait()
                 self.tree.DeleteAllItems()
                 self._tree_nodes = {}
-                for path,tc in self._top_containers.iteritems():
+                for path,tc in self._top_containers.items():
                     self.add_to_tree(path, None)
 
     def add_to_tree(self, path, parent):
@@ -972,7 +982,7 @@ class SmachViewerFrame(wx.Frame):
         # Add children to tree
         for label in self._containers[path]._children:
             child_path = '/'.join([path,label])
-            if child_path in self._containers.keys():
+            if child_path in list(self._containers.keys()):
                 self.add_to_tree(child_path, container)
             else:
                 self.tree.AppendItem(container,label)
