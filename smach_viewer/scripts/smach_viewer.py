@@ -953,14 +953,15 @@ class SmachViewerFrame(wx.Frame):
                     self.set_dotcode(dotstr,zoom=False)
                     self._structure_changed = False
 
-                # Update the styles for the graph if there are any updates
-                for path,tc in containers_to_update.items():
-                    tc.set_styles(
-                            self._selected_paths,
-                            0,self._max_depth,
-                            self.widget.items_by_url,
-                            self.widget.subgraph_shapes,
-                            self._containers)
+                if hasattr(self.widget, 'subgraph_shapes'):
+                    # Update the styles for the graph if there are any updates
+                    for path,tc in containers_to_update.items():
+                        tc.set_styles(
+                                self._selected_paths,
+                                0,self._max_depth,
+                                self.widget.items_by_url,
+                                self.widget.subgraph_shapes,
+                                self._containers)
 
                 # Redraw
                 self.widget.Refresh()
