@@ -523,7 +523,10 @@ class WxDotWindow(wx.Panel):
   def set_xdotcode(self, xdotcode):
     """Set xdot code."""
     #print xdotcode
-    parser = MyXDotParser(bytes(str(xdotcode).encode("utf-8")))
+    if sys.version_info[0] >= 3:
+      parser = MyXDotParser(bytes(str(xdotcode).encode("utf-8")))
+    else:
+      parser = XDotParser(xdotcode)
     self.graph = parser.parse()
     self.highlight = None
     #self.zoom_image(self.zoom_ratio, center=True)
