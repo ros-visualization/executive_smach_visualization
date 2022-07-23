@@ -1,6 +1,6 @@
 <package>
   <name>smach_viewer</name>
-  <version>3.0.1</version>
+  <version>4.0.0</version>
   <description>
     The smach viewer is a GUI that shows the state of hierarchical
     SMACH state machines. It can visualize the possible transitions

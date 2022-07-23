@@ -2,8 +2,8 @@
 Changelog for package smach_viewer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+4.0.0 (2022-07-23)
+------------------
 * publish smach viewer image (`#37 <https://github.com/ros-visualization/executive_smach_visualization/issues/37>`_)
 * use custom TextWrapper to wrap a sentence of multibyte languages into several lines (`#40 <https://github.com/ros-visualization/executive_smach_visualization/issues/40>`_)
 
