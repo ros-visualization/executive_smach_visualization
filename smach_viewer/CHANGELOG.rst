@@ -2,6 +2,42 @@
 Changelog for package smach_viewer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* publish smach viewer image (`#37 <https://github.com/ros-visualization/executive_smach_visualization/issues/37>`_)
+* use custom TextWrapper to wrap a sentence of multibyte languages into several lines (`#40 <https://github.com/ros-visualization/executive_smach_visualization/issues/40>`_)
+
+  - use TextWrapper for multibyte launguages
+  - the TextWrapper is copied from sphinx
+
+* Melodic/Noetic support (`#42 <https://github.com/ros-visualization/executive_smach_visualization/issues/42>`_)
+
+  - use MyXDotParser in python3
+  - check subgraph_shapes hasattr
+  - Merge branch 'melodic-devel' into image-publish
+  - apply 2to3 -w -f import *
+  - Use GetPosition istead of GetPositionTuple
+  - noetic support, based on InigoMoreno's work. see `#39 <https://github.com/ros-visualization/executive_smach_visualization/issues/39>`_
+
+* fix unpacking the user data (`#38 <https://github.com/ros-visualization/executive_smach_visualization/issues/38>`_)
+* Fix CI `#41 <https://github.com/ros-visualization/executive_smach_visualization/issues/41>`_ from k-okada/fix_ci
+
+  - update .travis.yml
+  - apply 2to3 -w -f import *
+  - apply 2to3 -w -f dict *
+  - apply 2to3 -w -f zip *
+  - add try except and trying line width one by one
+
+    * publish smach viewer image
+* [FIX] 'Jump' object has no attribute 'url' (`#31 <https://github.com/ros-visualization/executive_smach_visualization/issues/31>`_)
+  Fix for AttributeError: 'Jump' object has no attribute 'url'
+  To reproduce:
+  - roscore
+  - rosrun smach_viewer smach_viewer.py
+  - Press "+" button to increase depth and hover over/click text "Path not available"
+  - Error prints in terminal
+* Contributors: Gintaras, Kei Okada, Kousuke Takeuchi, Shingo Kitagawa
+
 3.0.1 (2020-08-25)
 ------------------
 * Merge pull request `#30 <https://github.com/ros-visualization/executive_smach_visualization//issues/30>`_ from k-okada/add_noetic
