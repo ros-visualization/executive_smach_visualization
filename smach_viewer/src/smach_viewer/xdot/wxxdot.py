@@ -19,42 +19,80 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from .xdot import *
+try:
+    from .xdot.ui.elements import *
+    from .xdot.ui.animation import *
+    from .xdot.dot.lexer import *
+    from .xdot.dot.parser import *
+    import subprocess
+except:
+    from .xdot import *
 
+# Python 3 renamed the unicode type to str, the old str type has been replaced by bytes.
+if sys.version_info[0] >= 3:
+    unicode = str
 
 __all__ = ['WxDotWindow', 'WxDotFrame']
 
 # We need to get the wx version with built-in cairo support
-import wxversion
-if wxversion.checkInstalled("2.8"):
-    wxversion.select("2.8")
-else:
-    print("wxversion 2.8 is not installed, installed versions are {}".format(wxversion.getInstalled()))
+try:
+    import wxversion
+    if wxversion.checkInstalled("2.8"):
+        wxversion.select("2.8")
+    else:
+        print("wxversion 2.8 is not installed, installed versions are {}".format(wxversion.getInstalled()))
+except:
+    pass  # Python3
+
 import wx
 import wx.lib.wxcairo as wxcairo
 
 # This is a crazy hack to get this to work on 64-bit systems
-if 'wxMac' in wx.PlatformInfo:
-  pass # Implement if necessary
-elif 'wxMSW' in wx.PlatformInfo:
-  pass # Implement if necessary
-elif 'wxGTK' in wx.PlatformInfo:
-  import ctypes
-  gdkLib = wx.lib.wxcairo._findGDKLib()
-  gdkLib.gdk_cairo_create.restype = ctypes.c_void_p
+try:
+    if 'wxMac' in wx.PlatformInfo:
+        pass # Implement if necessary
+    elif 'wxMSW' in wx.PlatformInfo:
+        pass # Implement if necessary
+    elif 'wxGTK' in wx.PlatformInfo:
+        import ctypes
+        gdkLib = wx.lib.wxcairo._findGDKLib()
+        gdkLib.gdk_cairo_create.restype = ctypes.c_void_p
+except:
+    pass  # Python3
+
+class MyXDotParser(XDotParser):
+
+  def __init__(self, xdotcode):
+    XDotParser.__init__(self,xdotcode)
+    self.subgraph_shapes = {}
+
+  def parse_subgraph(self):
+    shapes_before = set(self.shapes)
+
+    id = XDotParser.parse_subgraph(self)
+
+    new_shapes = set(self.shapes) - shapes_before
+    self.subgraph_shapes[id.decode()] = [s for s in new_shapes if not any([s in ss for ss in self.subgraph_shapes.values()])]
+
+    return id
+
+  def parse(self):
+    graph = XDotParser.parse(self)
+    graph.subgraph_shapes = self.subgraph_shapes
+    return graph
 
 class WxDragAction(object):
   def __init__(self, dot_widget):
     self.dot_widget = dot_widget
 
   def on_button_press(self, event):
-    x,y = event.GetPositionTuple()
+    x,y = event.GetPosition()
     self.startmousex = self.prevmousex = x
     self.startmousey = self.prevmousey = y
     self.start()
 
   def on_motion_notify(self, event):
-    x,y = event.GetPositionTuple()
+    x,y = event.GetPosition()
     deltax = self.prevmousex - x
     deltay = self.prevmousey - y
     self.drag(deltax, deltay)
@@ -62,7 +100,7 @@ class WxDragAction(object):
     self.prevmousey = y
 
   def on_button_release(self, event):
-    x,y = event.GetPositionTuple()
+    x,y = event.GetPosition()
     self.stopmousex = x
     self.stopmousey = y
     self.stop()
@@ -363,7 +401,7 @@ class WxDotWindow(wx.Panel):
     return WxNullAction(self)
 
   def OnMouse(self, event):
-    x,y = event.GetPositionTuple()
+    x,y = event.GetPosition()
 
     item = None
 
@@ -436,8 +474,9 @@ class WxDotWindow(wx.Panel):
     self.filter = filter
 
   def set_dotcode(self, dotcode, filename='<stdin>'):
-    if isinstance(dotcode, unicode):
-      dotcode = dotcode.encode('utf8')
+    # Python 3 renamed the unicode type to str, the old str type has been replaced by bytes.
+    if sys.version_info[0] < 3 and isinstance(dotcode, unicode):
+          dotcode = dotcode.encode('utf8')
     p = subprocess.Popen(
       [self.filter, '-Txdot'],
       stdin=subprocess.PIPE,
@@ -484,7 +523,10 @@ class WxDotWindow(wx.Panel):
   def set_xdotcode(self, xdotcode):
     """Set xdot code."""
     #print xdotcode
-    parser = XDotParser(xdotcode)
+    if sys.version_info[0] >= 3:
+      parser = MyXDotParser(bytes(str(xdotcode).encode("utf-8")))
+    else:
+      parser = XDotParser(xdotcode)
     self.graph = parser.parse()
     self.highlight = None
     #self.zoom_image(self.zoom_ratio, center=True)

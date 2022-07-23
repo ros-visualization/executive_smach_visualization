@@ -42,41 +42,63 @@ import threading
 import pickle
 import pprint
 import copy
-import StringIO
+try:
+    from StringIO import StringIO  # for Python 2
+except ImportError:
+    from io import StringIO  # for Python 3
 import colorsys
 import time
 import base64
 
-import wxversion
-if wxversion.checkInstalled("2.8"):
-    wxversion.select("2.8")
-else:
-    print("wxversion 2.8 is not installed, installed versions are {}".format(wxversion.getInstalled()))
+try:
+    import wxversion
+    if wxversion.checkInstalled("2.8"):
+        wxversion.select("2.8")
+    else:
+        print("wxversion 2.8 is not installed, installed versions are {}".format(wxversion.getInstalled()))
+
+    ## this import system (or ros-released) xdot
+    # import xdot
+    ## need to import currnt package, but not to load this file
+    # http://stackoverflow.com/questions/6031584/importing-from-builtin-library-when-module-with-same-name-exists
+    def import_non_local(name, custom_name=None):
+        import imp, sys
+
+        custom_name = custom_name or name
+
+        path = filter(lambda x: x != os.path.dirname(os.path.abspath(__file__)), sys.path)
+        f, pathname, desc = imp.find_module(name, path)
+
+        module = imp.load_module(custom_name, f, pathname, desc)
+        if f:
+            f.close()
+
+        return module
+
+    smach_viewer = import_non_local('smach_viewer')
+    from smach_viewer import xdot
+    from smach_viewer.xdot import wxxdot
+    from smach_viewer.xdot.xdot import TextShape
+except:
+    # Guard against self import
+    this_dir = os.path.dirname(__file__)
+    # Use os.getcwd() to aovid weird symbolic link problems
+    cur_dir = os.getcwd()
+    os.chdir(this_dir)
+    this_dir_cwd = os.getcwd()
+    os.chdir(cur_dir)
+    # Remove this dir from path
+    sys.path = [a for a in sys.path if a not in [this_dir, this_dir_cwd]]
+    #
+    from smach_viewer.xdot import wxxdot
+    from xdot.ui.elements import *
+
+
 import wx
 import wx.richtext
 
 import textwrap
 
-## this import system (or ros-released) xdot
-# import xdot
-## need to import currnt package, but not to load this file
-# http://stackoverflow.com/questions/6031584/importing-from-builtin-library-when-module-with-same-name-exists
-def import_non_local(name, custom_name=None):
-    import imp, sys
-
-    custom_name = custom_name or name
-
-    path = filter(lambda x: x != os.path.dirname(os.path.abspath(__file__)), sys.path)
-    f, pathname, desc = imp.find_module(name, path)
-
-    module = imp.load_module(custom_name, f, pathname, desc)
-    if f:
-        f.close()
-
-    return module
-
-smach_viewer = import_non_local('smach_viewer')
-from smach_viewer import xdot
 ##
 import smach
 import smach_ros
@@ -167,8 +189,11 @@ class ContainerNode():
         """Unpack the user data"""
         try:
             local_data = pickle.loads(msg.local_data)
-        except KeyError:
-            local_data = pickle.loads(base64.b64decode(msg.local_data.encode('utf-8')))
+        except:
+            if isinstance(msg.local_data, str):
+                local_data = pickle.loads(base64.b64decode(msg.local_data))
+            else:
+                local_data = pickle.loads(base64.b64decode(bytes(str(msg.local_data).encode('utf-8'))))
         return local_data
 
     def update_status(self, msg):
@@ -460,7 +485,7 @@ class ContainerNode():
                 else:
                     if child_path in items:
                         for shape in items[child_path].shapes:
-                            if not isinstance(shape,xdot.xdot.TextShape):
+                            if not isinstance(shape,TextShape):
                                 shape.pen.color = child_color
                                 shape.pen.fillcolor = child_fillcolor
                                 shape.pen.linewidth = child_linewidth
@@ -565,7 +590,7 @@ class SmachViewerFrame(wx.Frame):
         self.Bind(wx.EVT_TOOL, self.SaveDotGraph, id=wx.ID_SAVE)
 
         # Create dot graph widget
-        self.widget = xdot.wxxdot.WxDotWindow(graph_view, -1)
+        self.widget = wxxdot.WxDotWindow(graph_view, -1)
 
         gv_vbox.Add(toolbar, 0, wx.EXPAND)
         gv_vbox.Add(self.widget, 1, wx.EXPAND)
@@ -928,14 +953,15 @@ class SmachViewerFrame(wx.Frame):
                     self.set_dotcode(dotstr,zoom=False)
                     self._structure_changed = False
 
-                # Update the styles for the graph if there are any updates
-                for path,tc in containers_to_update.items():
-                    tc.set_styles(
-                            self._selected_paths,
-                            0,self._max_depth,
-                            self.widget.items_by_url,
-                            self.widget.subgraph_shapes,
-                            self._containers)
+                if hasattr(self.widget, 'subgraph_shapes'):
+                    # Update the styles for the graph if there are any updates
+                    for path,tc in containers_to_update.items():
+                        tc.set_styles(
+                                self._selected_paths,
+                                0,self._max_depth,
+                                self.widget.items_by_url,
+                                self.widget.subgraph_shapes,
+                                self._containers)
 
                 # Redraw
                 self.widget.Refresh()
