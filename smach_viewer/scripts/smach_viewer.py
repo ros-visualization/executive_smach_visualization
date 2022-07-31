@@ -92,7 +92,7 @@ except:
     os.chdir(cur_dir)
     # Remove this dir from path
     sys.path = [a for a in sys.path if a not in [this_dir, this_dir_cwd]]
-    # Ignore path ends in smach_viewer/lib/smach_viewer
+    # Ignore path ending with smach_viewer/lib/smach_viewer
     sys.path = [a for a in sys.path if not a.endswith('smach_viewer/lib/smach_viewer')]
     #
     from smach_viewer.xdot import wxxdot
@@ -1193,7 +1193,7 @@ class SmachViewerFrame(wx.Frame):
 
     def OnTimer(self, event):
         if self._pub.get_num_connections() < 1:
-            rospy.logwarn_once("Publishing {} requries at least one subscribers".format(self._pub.name))
+            rospy.logwarn_once("Publishing {} requires at least one subscriber".format(self._pub.name))
             return
         # image
         context = wx.ClientDC(self)

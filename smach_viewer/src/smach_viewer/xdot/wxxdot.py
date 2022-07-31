@@ -20,7 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 try:
-    # intentionally uses from xdot, instead of from .xdot, because we want to use local xdot for Pytohn2 and sytem xdot for Python3
+    # intentionally use from xdot, instead of from .xdot, because we want to use local xdot for Python2 and system xdot for Python3
     from xdot.ui.elements import *
     from xdot.ui.animation import *
     from xdot.dot.lexer import *
