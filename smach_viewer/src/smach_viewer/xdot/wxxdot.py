@@ -310,7 +310,7 @@ class WxDotWindow(wx.Panel):
 
   ### Cursor manipulation
   def set_cursor(self, cursor_type):
-    self.cursor = wx.StockCursor(cursor_type)
+    self.cursor = wx.Cursor(cursor_type)
     self.SetCursor(self.cursor)
 
   ### Zooming methods
