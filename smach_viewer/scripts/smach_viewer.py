@@ -1190,6 +1190,12 @@ class SmachViewerFrame(wx.Frame):
             #    self.set_server(self._servers[0])
 
     def OnTimer(self, event):
+        if self._pub.get_num_connections() < 1:
+            rospy.logwarn_once("Publishing {} requries at least one subscribers".format(self._pub.name))
+            return
+        if sys.version_info[0] >= 3:
+            rospy.logwarn_once("Publishing {} is not supported on Python3".format(self._pub.name))
+            return
         # image
         context = wx.ClientDC(self)
         memory = wx.MemoryDC()
