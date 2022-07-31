@@ -11,5 +11,5 @@ catkin_package(
   )
 
 # Install targets
-install(PROGRAMS scripts/smach_viewer.py
+catkin_install_python(PROGRAMS scripts/smach_viewer.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

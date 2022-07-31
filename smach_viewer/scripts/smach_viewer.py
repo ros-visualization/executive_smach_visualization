@@ -92,6 +92,8 @@ except:
     os.chdir(cur_dir)
     # Remove this dir from path
     sys.path = [a for a in sys.path if a not in [this_dir, this_dir_cwd]]
+    # Ignore path ends in smach_viewer/lib/smach_viewer
+    sys.path = [a for a in sys.path if not a.endswith('smach_viewer/lib/smach_viewer')]
     #
     from smach_viewer.xdot import wxxdot
     from xdot.ui.elements import *
