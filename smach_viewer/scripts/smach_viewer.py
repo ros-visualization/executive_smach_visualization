@@ -1199,11 +1199,11 @@ class SmachViewerFrame(wx.Frame):
         context = wx.ClientDC(self)
         memory = wx.MemoryDC()
         x, y = self.ClientSize
-        bitmap = wx.EmptyBitmap(x, y, -1)
+        bitmap = wx.Bitmap(x, y, -1)
         memory.SelectObject(bitmap)
         memory.Blit(0, 0, x, y, context, 0, 0)
         memory.SelectObject(wx.NullBitmap)
-        buf = wx.ImageFromBitmap(bitmap).GetDataBuffer()
+        buf = bitmap.ConvertToImage().GetDataBuffer()
         img = np.frombuffer(buf, dtype=np.uint8)
         bridge = cv_bridge.CvBridge()
         img_msg = bridge.cv2_to_imgmsg(img.reshape((y, x, 3)), encoding='rgb8')
