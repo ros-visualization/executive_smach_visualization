@@ -20,13 +20,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 try:
-    from .xdot.ui.elements import *
-    from .xdot.ui.animation import *
-    from .xdot.dot.lexer import *
-    from .xdot.dot.parser import *
+    from xdot.ui.elements import *
+    from xdot.ui.animation import *
+    from xdot.dot.lexer import *
+    from xdot.dot.parser import *
     import subprocess
 except:
-    from .xdot import *
+    from xdot import *
 
 # Python 3 renamed the unicode type to str, the old str type has been replaced by bytes.
 if sys.version_info[0] >= 3:
