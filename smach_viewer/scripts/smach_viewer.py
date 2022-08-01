@@ -92,7 +92,7 @@ except:
     os.chdir(cur_dir)
     # Remove this dir from path
     sys.path = [a for a in sys.path if a not in [this_dir, this_dir_cwd]]
-    # Ignore path ends in smach_viewer/lib/smach_viewer
+    # Ignore path ending with smach_viewer/lib/smach_viewer
     sys.path = [a for a in sys.path if not a.endswith('smach_viewer/lib/smach_viewer')]
     #
     from smach_viewer.xdot import wxxdot
@@ -704,9 +704,9 @@ class SmachViewerFrame(wx.Frame):
         toolbar.AddControl(toggle_auto_focus)
 
         toolbar.AddControl(wx.StaticText(toolbar,-1,"    "))
-        toolbar.AddLabelTool(wx.ID_HELP, 'Help',
+        toolbar.AddTool(wx.ID_HELP, 'Help',
                 wx.ArtProvider.GetBitmap(wx.ART_HELP,wx.ART_OTHER,(16,16)) )
-        toolbar.AddLabelTool(wx.ID_SAVE, 'Save',
+        toolbar.AddTool(wx.ID_SAVE, 'Save',
                 wx.ArtProvider.GetBitmap(wx.ART_FILE_SAVE,wx.ART_OTHER,(16,16)) )
         toolbar.Realize()
 
@@ -1193,20 +1193,17 @@ class SmachViewerFrame(wx.Frame):
 
     def OnTimer(self, event):
         if self._pub.get_num_connections() < 1:
-            rospy.logwarn_once("Publishing {} requries at least one subscribers".format(self._pub.name))
-            return
-        if sys.version_info[0] >= 3:
-            rospy.logwarn_once("Publishing {} is not supported on Python3".format(self._pub.name))
+            rospy.logwarn_once("Publishing {} requires at least one subscriber".format(self._pub.name))
             return
         # image
         context = wx.ClientDC(self)
         memory = wx.MemoryDC()
         x, y = self.ClientSize
-        bitmap = wx.EmptyBitmap(x, y, -1)
+        bitmap = wx.Bitmap(x, y, -1)
         memory.SelectObject(bitmap)
         memory.Blit(0, 0, x, y, context, 0, 0)
         memory.SelectObject(wx.NullBitmap)
-        buf = wx.ImageFromBitmap(bitmap).GetDataBuffer()
+        buf = bitmap.ConvertToImage().GetDataBuffer()
         img = np.frombuffer(buf, dtype=np.uint8)
         bridge = cv_bridge.CvBridge()
         img_msg = bridge.cv2_to_imgmsg(img.reshape((y, x, 3)), encoding='rgb8')
