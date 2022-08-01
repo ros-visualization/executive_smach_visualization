@@ -29,6 +29,8 @@ try:
 except:
     from xdot import *
 
+from distutils.version import LooseVersion
+
 # Python 3 renamed the unicode type to str, the old str type has been replaced by bytes.
 if sys.version_info[0] >= 3:
     unicode = str
@@ -310,7 +312,10 @@ class WxDotWindow(wx.Panel):
 
   ### Cursor manipulation
   def set_cursor(self, cursor_type):
-    self.cursor = wx.Cursor(cursor_type)
+    if LooseVersion(wx.__version__) >= LooseVersion('4.0'):
+        self.cursor = wx.Cursor(cursor_type)
+    else:
+        self.cursor = wx.StockCursor(cursor_type)
     self.SetCursor(self.cursor)
 
   ### Zooming methods
