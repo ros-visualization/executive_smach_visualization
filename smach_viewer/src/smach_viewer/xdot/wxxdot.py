@@ -20,13 +20,16 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 try:
-    from .xdot.ui.elements import *
-    from .xdot.ui.animation import *
-    from .xdot.dot.lexer import *
-    from .xdot.dot.parser import *
+    # intentionally use from xdot, instead of from .xdot, because we want to use local xdot for Python2 and system xdot for Python3
+    from xdot.ui.elements import *
+    from xdot.ui.animation import *
+    from xdot.dot.lexer import *
+    from xdot.dot.parser import *
     import subprocess
 except:
-    from .xdot import *
+    from xdot import *
+
+from distutils.version import LooseVersion
 
 # Python 3 renamed the unicode type to str, the old str type has been replaced by bytes.
 if sys.version_info[0] >= 3:
@@ -309,7 +312,10 @@ class WxDotWindow(wx.Panel):
 
   ### Cursor manipulation
   def set_cursor(self, cursor_type):
-    self.cursor = wx.StockCursor(cursor_type)
+    if LooseVersion(wx.__version__) >= LooseVersion('4.0'):
+        self.cursor = wx.Cursor(cursor_type)
+    else:
+        self.cursor = wx.StockCursor(cursor_type)
     self.SetCursor(self.cursor)
 
   ### Zooming methods

@@ -53,6 +53,8 @@ import cv_bridge
 import numpy as np
 import base64
 
+from distutils.version import LooseVersion
+
 try:
     import wxversion
     if wxversion.checkInstalled("2.8"):
@@ -92,6 +94,8 @@ except:
     os.chdir(cur_dir)
     # Remove this dir from path
     sys.path = [a for a in sys.path if a not in [this_dir, this_dir_cwd]]
+    # Ignore path ending with smach_viewer/lib/smach_viewer
+    sys.path = [a for a in sys.path if not a.endswith('smach_viewer/lib/smach_viewer')]
     #
     from smach_viewer.xdot import wxxdot
     from xdot.ui.elements import *
@@ -702,10 +706,16 @@ class SmachViewerFrame(wx.Frame):
         toolbar.AddControl(toggle_auto_focus)
 
         toolbar.AddControl(wx.StaticText(toolbar,-1,"    "))
-        toolbar.AddLabelTool(wx.ID_HELP, 'Help',
-                wx.ArtProvider.GetBitmap(wx.ART_HELP,wx.ART_OTHER,(16,16)) )
-        toolbar.AddLabelTool(wx.ID_SAVE, 'Save',
-                wx.ArtProvider.GetBitmap(wx.ART_FILE_SAVE,wx.ART_OTHER,(16,16)) )
+        if LooseVersion(wx.__version__) >= LooseVersion('4.0'):
+            toolbar.AddTool(wx.ID_HELP, 'Help',
+                            wx.ArtProvider.GetBitmap(wx.ART_HELP,wx.ART_OTHER,(16,16)) )
+            toolbar.AddTool(wx.ID_SAVE, 'Save',
+                            wx.ArtProvider.GetBitmap(wx.ART_FILE_SAVE,wx.ART_OTHER,(16,16)) )
+        else:
+            toolbar.AddLabelTool(wx.ID_HELP, 'Help',
+                                 wx.ArtProvider.GetBitmap(wx.ART_HELP,wx.ART_OTHER,(16,16)) )
+            toolbar.AddLabelTool(wx.ID_SAVE, 'Save',
+                                 wx.ArtProvider.GetBitmap(wx.ART_FILE_SAVE,wx.ART_OTHER,(16,16)) )
         toolbar.Realize()
 
         self.Bind(wx.EVT_TOOL, self.ShowControlsDialog, id=wx.ID_HELP)
@@ -1190,15 +1200,24 @@ class SmachViewerFrame(wx.Frame):
             #    self.set_server(self._servers[0])
 
     def OnTimer(self, event):
+        if self._pub.get_num_connections() < 1:
+            rospy.logwarn_once("Publishing {} requires at least one subscriber".format(self._pub.name))
+            return
         # image
         context = wx.ClientDC(self)
         memory = wx.MemoryDC()
         x, y = self.ClientSize
-        bitmap = wx.EmptyBitmap(x, y, -1)
+        if LooseVersion(wx.__version__) >= LooseVersion('4.0'):
+            bitmap = wx.Bitmap(x, y, -1)
+        else:
+            bitmap = wx.EmptyBitmap(x, y, -1)
         memory.SelectObject(bitmap)
         memory.Blit(0, 0, x, y, context, 0, 0)
         memory.SelectObject(wx.NullBitmap)
-        buf = wx.ImageFromBitmap(bitmap).GetDataBuffer()
+        if LooseVersion(wx.__version__) >= LooseVersion('4.0'):
+            buf = bitmap.ConvertToImage().GetDataBuffer()
+        else:
+            buf = wx.ImageFromBitmap(bitmap).GetDataBuffer()
         img = np.frombuffer(buf, dtype=np.uint8)
         bridge = cv_bridge.CvBridge()
         img_msg = bridge.cv2_to_imgmsg(img.reshape((y, x, 3)), encoding='rgb8')
