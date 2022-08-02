@@ -2,6 +2,23 @@
 Changelog for package smach_viewer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix 4.0.0, which does not work on both Melodic/Noetic (`#43 <https://github.com/ros-visualization/executive_smach_visualization/issues/43>`_)
+
+  * use LooseVersion(wx.__version_\_) to support old Melodic (wxPython 3.0)
+  * typos
+  * more deprecated functions to test on melodic
+  * why wouldn't this work with python3 ?
+  * add missing dependency on cv_bridge
+  * update use of deprecated functions
+  * update pckage.xml based on https://github.com/ros-visualization/executive_smach_visualization/pull/39
+  * use catkin_install_python to automatically set /usr/bin/env python3 for noetic, but need to remove smach_viewer/lib/smach_viewer from sys.path
+  * xdot/wxxdot.py: intentionally uses from xdot, instead of from .xdot, because we want to use local xdot for Pytohn2 and sytem xdot for Python3
+  * Revert "apply 2to3 -w -f import *" This reverts commit 4cbd2ab0d16d4123e9227bf6b9e627bd4bd8ea7f.
+
+* Contributors: Kei Okada, Mikael Arguedas
+
 4.0.0 (2022-07-23)
 ------------------
 * publish smach viewer image (`#37 <https://github.com/ros-visualization/executive_smach_visualization/issues/37>`_)
