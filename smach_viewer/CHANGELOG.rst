@@ -2,8 +2,8 @@
 Changelog for package smach_viewer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+4.0.1 (2022-08-02)
+------------------
 * Fix 4.0.0, which does not work on both Melodic/Noetic (`#43 <https://github.com/ros-visualization/executive_smach_visualization/issues/43>`_)
 
   * use LooseVersion(wx.__version_\_) to support old Melodic (wxPython 3.0)
