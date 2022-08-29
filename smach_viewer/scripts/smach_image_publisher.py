@@ -3,6 +3,7 @@
 import copy
 import cv2
 import cv_bridge
+import imp
 import os
 import rospy
 import subprocess
@@ -10,7 +11,40 @@ import sys
 
 from sensor_msgs.msg import Image
 
-from smach_viewer.smach_viewer_base import SmachViewerBase
+try:
+    # this import system (or ros-released) xdot
+    # import xdot
+    # need to import currnt package, but not to load this file
+    # http://stackoverflow.com/questions/6031584/importing-from-builtin-library-when-module-with-same-name-exists
+    def import_non_local(name, custom_name=None):
+        custom_name = custom_name or name
+
+        path = filter(lambda x: x != os.path.dirname(os.path.abspath(__file__)), sys.path)
+        f, pathname, desc = imp.find_module(name, path)
+
+        module = imp.load_module(custom_name, f, pathname, desc)
+        if f:
+            f.close()
+
+        return module
+
+    smach_viewer = import_non_local('smach_viewer')
+    from smach_viewer.smach_viewer_base import SmachViewerBase
+except Exception:
+    # Guard against self import
+    this_dir = os.path.dirname(__file__)
+    # Use os.getcwd() to aovid weird symbolic link problems
+    cur_dir = os.getcwd()
+    os.chdir(this_dir)
+    this_dir_cwd = os.getcwd()
+    os.chdir(cur_dir)
+    # Remove this dir from path
+    sys.path = [a for a in sys.path if a not in [this_dir, this_dir_cwd]]
+    # Ignore path ending with smach_viewer/lib/smach_viewer
+    sys.path = [a for a in sys.path if not a.endswith('smach_viewer/lib/smach_viewer')]
+    #
+    from smach_viewer.smach_viewer_base import SmachViewerBase
+
 
 if sys.version_info[0] >= 3:
     unicode = str
@@ -60,4 +94,3 @@ if __name__ == '__main__':
         app.kill()
     rospy.on_shutdown(signal_handler)
     rospy.spin()
-
