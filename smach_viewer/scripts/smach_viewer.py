@@ -28,30 +28,19 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-# Author: Jonathan Bohren 
+# Author: Jonathan Bohren
 
-import rospy
 import rospkg
-import roslib
+import rospy
 
-from smach_msgs.msg import SmachContainerStatus,SmachContainerInitialStatusCmd,SmachContainerStructure
 from sensor_msgs.msg import Image
 
-import sys
-import os
-import threading
-import pickle
-import pprint
-import copy
-try:
-    from StringIO import StringIO  # for Python 2
-except ImportError:
-    from io import StringIO  # for Python 3
-import colorsys
-import time
 import cv_bridge
+import os
+import sys
+import threading
+import time
 import numpy as np
-import base64
 
 from distutils.version import LooseVersion
 
@@ -104,417 +93,14 @@ except:
 import wx
 import wx.richtext
 
-from itertools import groupby
-import textwrap
-import unicodedata
+from smach_viewer.smach_viewer_base import ContainerNode
+from smach_viewer.smach_viewer_base import SmachViewerBase
+from smach_viewer.utils import get_label
+from smach_viewer.utils import get_parent_path
+from smach_viewer.utils import hex2t
 
-##
-import smach
-import smach_ros
 
-### Helper Functions
-def graph_attr_string(attrs):
-    """Generate an xdot graph attribute string."""
-    attrs_strs = ['"'+str(k)+'"="'+str(v)+'"' for k,v in attrs.items()]
-    return ';\n'.join(attrs_strs)+';\n'
-
-def attr_string(attrs):
-    """Generate an xdot node attribute string."""
-    attrs_strs = ['"'+str(k)+'"="'+str(v)+'"' for k,v in attrs.items()]
-    return ' ['+(', '.join(attrs_strs))+']'
-
-def get_parent_path(path):
-    """Get the parent path of an xdot node."""
-    path_tokens = path.split('/')
-    if len(path_tokens) > 2:
-        parent_path = '/'.join(path_tokens[0:-1])
-    else:
-        parent_path = '/'.join(path_tokens[0:1])
-    return parent_path
-
-def get_label(path):
-    """Get the label of an xdot node."""
-    path_tokens = path.split('/')
-    return path_tokens[-1]
-
-def hex2t(color_str):
-    """Convert a hexadecimal color strng into a color tuple."""
-    color_tuple = [int(color_str[i:i+2],16)/255.0    for i in range(1,len(color_str),2)]
-    return color_tuple
-
-
-# these codes are copied and modified from sphinx
-# https://github.com/sphinx-doc/sphinx/commit/00fa1b2505adbaec66496ec20fa5952da976496d
-def column_width(text):
-    east_asian_widths = {
-        'W': 2,   # Wide
-        'F': 2,   # Full-width (wide)
-        'Na': 1,  # Narrow
-        'H': 1,   # Half-width (narrow)
-        'N': 1,   # Neutral (not East Asian, treated as narrow)
-        'A': 1    # Ambiguous (s/b wide in East Asian context
-    }
-    if isinstance(text, str) and sys.version_info < (3, 0):
-        return len(text)
-    combining_correction = sum([-1 for c in text
-                                if unicodedata.combining(c)])
-    try:
-        width = sum([east_asian_widths[unicodedata.east_asian_width(c)]
-                     for c in text])
-    except AttributeError:  # east_asian_width() New in version 2.4.
-        width = len(text)
-    return width + combining_correction
-
-
-class TextWrapper(textwrap.TextWrapper):
-
-    def _wrap_chunks(self, chunks):
-        """_wrap_chunks(chunks : [string]) -> [string]
-
-        Original _wrap_chunks use len() to calculate width.
-        This method respect to wide/fullwidth characters for width adjustment.
-        """
-        lines = []
-        if self.width <= 0:
-            raise ValueError("invalid width %r (must be > 0)" % self.width)
-
-        chunks.reverse()
-
-        while chunks:
-            cur_line = []
-            cur_len = 0
-
-            if lines:
-                indent = self.subsequent_indent
-            else:
-                indent = self.initial_indent
-
-            width = self.width - column_width(indent)
-
-            if self.drop_whitespace and chunks[-1].strip() == '' and lines:
-                del chunks[-1]
-
-            while chunks:
-                c_l = column_width(chunks[-1])
-
-                if cur_len + c_l <= width:
-                    cur_line.append(chunks.pop())
-                    cur_len += c_l
-
-                else:
-                    break
-
-            if chunks and column_width(chunks[-1]) > width:
-                self._handle_long_word(chunks, cur_line, cur_len, width)
-
-            if (self.drop_whitespace and cur_line
-                    and cur_line[-1].strip() == ''):
-                del cur_line[-1]
-
-            if cur_line:
-                lines.append(indent + ''.join(cur_line))
-
-        return lines
-
-    def _break_word(self, word, space_left):
-        """_break_word(word : string, space_left : int) -> (string, string)
-
-        Break line by unicode width instead of len(word).
-        """
-        total = 0
-        for i, c in enumerate(word):
-            total += column_width(c)
-            if total > space_left:
-                return word[:i-1], word[i-1:]
-        return word, ''
-
-    def _split(self, text):
-        """_split(text : string) -> [string]
-
-        Override original method that only split by 'wordsep_re'.
-        This '_split' split wide-characters into chunk by one character.
-        """
-        split = lambda t: textwrap.TextWrapper._split(self, t)
-        chunks = []
-        for chunk in split(text):
-            for w, g in groupby(chunk, column_width):
-                if w == 1:
-                    chunks.extend(split(''.join(g)))
-                else:
-                    chunks.extend(list(g))
-        return chunks
-
-    def _handle_long_word(self, reversed_chunks, cur_line, cur_len, width):
-        """_handle_long_word(chunks : [string], cur_line : [string], cur_len : int, width : int)
-
-        Override original method for using self._break_word() instead of slice.
-        """
-        space_left = max(width - cur_len, 1)
-        if self.break_long_words:
-            l, r = self._break_word(reversed_chunks[-1], space_left)
-            cur_line.append(l)
-            reversed_chunks[-1] = r
-
-        elif not cur_line:
-            cur_line.append(reversed_chunks.pop())
-
-
-class ContainerNode():
-    """
-    This class represents a given container in a running SMACH system. 
-
-    Its primary use is to generate dotcode for a SMACH container. It has
-    methods for responding to structure and status messages from a SMACH
-    introspection server, as well as methods for updating the styles of a 
-    graph once it's been drawn.
-    """
-    def __init__(self, server_name, msg):
-        # Store path info
-        self._server_name = server_name
-        self._path = msg.path
-        splitpath = msg.path.split('/')
-        self._label = splitpath[-1]
-        self._dir = '/'.join(splitpath[0:-1])
-
-        self._children = msg.children
-        self._internal_outcomes = msg.internal_outcomes
-        self._outcomes_from = msg.outcomes_from
-        self._outcomes_to = msg.outcomes_to
-
-        self._container_outcomes = msg.container_outcomes
-
-        # Status
-        self._initial_states = []
-        self._active_states = []
-        self._last_active_states = []
-        self._local_data = smach.UserData()
-        self._info = ''
-
-    def update_structure(self, msg):
-        """Update the structure of this container from a given message. Return True if anything changes."""
-        needs_update = False
-
-        if self._children != msg.children\
-                or self._internal_outcomes != msg.internal_outcomes\
-                or self._outcomes_from != msg.outcomes_from\
-                or self._outcomes_to != msg.outcomes_to\
-                or self._container_outcomes != msg.container_outcomes:
-            needs_update = True
-
-        if needs_update:
-            self._children = msg.children
-            self._internal_outcomes = msg.internal_outcomes
-            self._outcomes_from = msg.outcomes_from
-            self._outcomes_to = msg.outcomes_to
-
-            self._container_outcomes = msg.container_outcomes
-
-        return needs_update
-
-    def _load_local_data(self, msg):
-        """Unpack the user data"""
-        try:
-            local_data = pickle.loads(msg.local_data)
-        except:
-            if isinstance(msg.local_data, str):
-                local_data = pickle.loads(base64.b64decode(msg.local_data))
-            else:
-                local_data = pickle.loads(base64.b64decode(bytes(str(msg.local_data).encode('utf-8'))))
-        return local_data
-
-    def update_status(self, msg):
-        """Update the known userdata and active state set and return True if the graph needs to be redrawn."""
-
-        # Initialize the return value
-        needs_update = False
-
-        # Check if the initial states or active states have changed
-        if set(msg.initial_states) != set(self._initial_states):
-            self._structure_changed = True
-            needs_update = True
-        if set(msg.active_states) != set(self._active_states):
-            needs_update = True
-
-        # Store the initial and active states
-        self._initial_states = msg.initial_states
-        self._last_active_states = self._active_states
-        self._active_states = msg.active_states
-
-        # Unpack the user data
-        while not rospy.is_shutdown():
-            try:
-                self._local_data._data = self._load_local_data(msg)
-                break
-            except ImportError as ie:
-                # This will only happen once for each package
-                modulename = ie.args[0][16:]
-                packagename = modulename[0:modulename.find('.')]
-                roslib.load_manifest(packagename)
-                self._local_data._data = self._load_local_data(msg)
-
-        # Store the info string
-        self._info = msg.info
-
-        return needs_update
-
-    def get_dotcode(self, selected_paths, closed_paths, depth, max_depth, containers, show_all, label_wrapper, attrs={}):
-        """Generate the dotcode representing this container.
-        
-        @param selected_paths: The paths to nodes that are selected
-        @closed paths: The paths that shouldn't be expanded
-        @param depth: The depth to start traversing the tree
-        @param max_depth: The depth to which we should traverse the tree
-        @param containers: A dict of containers keyed by their paths
-        @param show_all: True if implicit transitions should be shown
-        @param label_wrapper: A text wrapper for wrapping element names
-        @param attrs: A dict of dotcode attributes for this cluster
-        """
-
-        dotstr = 'subgraph "cluster_%s" {\n' % (self._path)
-        if depth == 0:
-            #attrs['style'] = 'filled,rounded'
-            attrs['color'] = '#00000000'
-            attrs['fillcolor'] = '#0000000F'
-        #attrs['rank'] = 'max'
-
-        #,'succeeded','aborted','preempted'attrs['label'] = self._label
-        dotstr += graph_attr_string(attrs)
-
-        # Add start/terimate target
-        proxy_attrs = {
-                'URL':self._path,
-                'shape':'plaintext',
-                'color':'gray',
-                'fontsize':'18',
-                'fontweight':'18',
-                'rank':'min',
-                'height':'0.01'}
-        proxy_attrs['label'] = '\\n'.join(label_wrapper.wrap(self._label))
-        dotstr += '"%s" %s;\n' % (
-                '/'.join([self._path,'__proxy__']),
-                attr_string(proxy_attrs))
-
-        # Check if we should expand this container
-        if max_depth == -1 or depth <= max_depth:
-            # Add container outcomes
-            dotstr += 'subgraph "cluster_%s" {\n' % '/'.join([self._path,'__outcomes__'])
-            outcomes_attrs = {
-                    'style':'rounded,filled',
-                    'rank':'sink',
-                    'color':'#FFFFFFFF',#'#871C34',
-                    'fillcolor':'#FFFFFF00'#'#FE464f3F'#'#DB889A'
-                    }
-            dotstr += graph_attr_string(outcomes_attrs)
-
-            for outcome_label in self._container_outcomes:
-                outcome_path = ':'.join([self._path,outcome_label])
-                outcome_attrs = {
-                        'shape':'box',
-                        'height':'0.3',
-                        'style':'filled,rounded',
-                        'fontsize':'12',
-                        'fillcolor':'#FE464f',#'#EDC2CC',
-                        'color':'#780006',#'#EBAEBB',
-                        'fontcolor':'#780006',#'#EBAEBB',
-                        'label':'',
-                        'xlabel':'\\n'.join(label_wrapper.wrap(outcome_label)),
-                        'URL':':'.join([self._path,outcome_label])
-                        }
-                dotstr += '"%s" %s;\n' % (outcome_path,attr_string(outcome_attrs))
-            dotstr += "}\n"
-
-            # Iterate over children
-            for child_label in self._children:
-                child_attrs = {
-                        'style':'filled,setlinewidth(2)',
-                        'color':'#000000FF',
-                        'fillcolor':'#FFFFFF00'
-                        }
-
-                child_path = '/'.join([self._path,child_label])
-                # Generate dotcode for children
-                if child_path in containers:
-                    child_attrs['style'] += ',rounded'
-
-                    dotstr += containers[child_path].get_dotcode(
-                            selected_paths,
-                            closed_paths,
-                            depth+1, max_depth,
-                            containers,
-                            show_all,
-                            label_wrapper,
-                            child_attrs)
-                else:
-                    child_attrs['label'] = '\\n'.join(label_wrapper.wrap(child_label))
-                    child_attrs['URL'] = child_path
-                    dotstr += '"%s" %s;\n' % (child_path, attr_string(child_attrs))
-
-            # Iterate over edges
-            internal_edges = list(zip(
-                    self._internal_outcomes,
-                    self._outcomes_from,
-                    self._outcomes_to))
-
-            # Add edge from container label to initial state
-            internal_edges += [('','__proxy__',initial_child) for initial_child in self._initial_states]
-
-            has_explicit_transitions = []
-            for (outcome_label,from_label,to_label) in internal_edges:
-                if to_label != 'None' or outcome_label == to_label:
-                    has_explicit_transitions.append(from_label)
-
-            # Draw internal edges
-            for (outcome_label,from_label,to_label) in internal_edges:
-
-                from_path = '/'.join([self._path, from_label])
-
-                if show_all \
-                        or to_label != 'None'\
-                        or from_label not in has_explicit_transitions \
-                        or (outcome_label == from_label) \
-                        or from_path in containers:
-                    # Set the implicit target of this outcome
-                    if to_label == 'None':
-                        to_label = outcome_label
-
-                    to_path = '/'.join([self._path, to_label])
-
-                    edge_attrs = {
-                            'URL':':'.join([from_path,outcome_label,to_path]),
-                            'fontsize':'12',
-                            'label':'',
-                            'xlabel':'\\n'.join(label_wrapper.wrap(outcome_label))}
-                    edge_attrs['style'] = 'setlinewidth(2)'
-
-                    # Hide implicit
-                    #if not show_all and to_label == outcome_label:
-                    #    edge_attrs['style'] += ',invis'
-
-                    from_key = '"%s"' % from_path
-                    if from_path in containers:
-                        if max_depth == -1 or depth+1 <= max_depth:
-                            from_key = '"%s:%s"' % ( from_path, outcome_label)
-                        else:
-                            edge_attrs['ltail'] = 'cluster_'+from_path
-                            from_path = '/'.join([from_path,'__proxy__'])
-                            from_key = '"%s"' % ( from_path )
-
-                    to_key = ''
-                    if to_label in self._container_outcomes:
-                        to_key = '"%s:%s"' % (self._path,to_label)
-                        edge_attrs['color'] = '#00000055'# '#780006'
-                    else:
-                        if to_path in containers:
-                            edge_attrs['lhead'] = 'cluster_'+to_path
-                            to_path = '/'.join([to_path,'__proxy__'])
-                        to_key = '"%s"' % to_path
-
-                    dotstr += '%s -> %s %s;\n' % (
-                            from_key, to_key, attr_string(edge_attrs))
-
-        dotstr += '}\n'
-        return dotstr
-
+class WxContainerNode(ContainerNode):
     def set_styles(self, selected_paths, depth, max_depth, items, subgraph_shapes, containers):
         """Update the styles for a list of containers without regenerating the dotcode.
 
@@ -556,7 +142,6 @@ class ContainerNode():
                 active_fillcolor = hex2t('#C0F700FF')
 
                 initial_color = hex2t('#000000FF')
-                initial_fillcolor = hex2t('#FFFFFFFF')
 
                 if child_label in self._active_states:
                     # Check if the child is active
@@ -588,7 +173,6 @@ class ContainerNode():
                                 v = 0.85
                             child_fillcolor = [v,v,v,1.0]
 
-                        
                         for shape in subgraph_shapes['cluster_'+child_path]:
                             pen = shape.pen
                             if len(pen.color) > 3:
@@ -611,36 +195,31 @@ class ContainerNode():
                 else:
                     if child_path in items:
                         for shape in items[child_path].shapes:
-                            if not isinstance(shape,TextShape):
+                            if not isinstance(shape, TextShape):
                                 shape.pen.color = child_color
                                 shape.pen.fillcolor = child_fillcolor
                                 shape.pen.linewidth = child_linewidth
                     else:
-                        #print child_path+" NOT IN "+str(items.keys())
+                        # print child_path+" NOT IN "+str(items.keys())
                         pass
 
-class SmachViewerFrame(wx.Frame):
+
+class SmachViewerFrame(wx.Frame, SmachViewerBase):
     """
     This class provides a GUI application for viewing SMACH plans.
     """
+
+    _container_class = WxContainerNode
+
     def __init__(self):
         wx.Frame.__init__(self, None, -1, "Smach Viewer", size=(720,480))
-
-        # Create graph
-        self._containers = {}
-        self._top_containers = {}
-        self._update_cond = threading.Condition()
-        self._needs_refresh = True
-        self.dotstr = ''
-
+        SmachViewerBase.__init__(self)
         vbox = wx.BoxSizer(wx.VERTICAL)
-
 
         # Create Splitter
         self.content_splitter = wx.SplitterWindow(self, -1,style = wx.SP_LIVE_UPDATE)
         self.content_splitter.SetMinimumPaneSize(24)
         self.content_splitter.SetSashGravity(0.85)
-
 
         # Create viewer pane
         viewer = wx.Panel(self.content_splitter,-1)
@@ -675,7 +254,6 @@ class SmachViewerFrame(wx.Frame):
                 max=1337,
                 initial=-1)
         self.depth_spinner.Bind(wx.EVT_SPINCTRL,self.set_depth)
-        self._max_depth = -1
         toolbar.AddControl(wx.StaticText(toolbar,-1,"    Depth: "))
         toolbar.AddControl(self.depth_spinner)
 
@@ -686,14 +264,12 @@ class SmachViewerFrame(wx.Frame):
                 max=1337,
                 initial=40)
         self.width_spinner.Bind(wx.EVT_SPINCTRL,self.set_label_width)
-        self._label_wrapper = TextWrapper(40,break_long_words=True)
         toolbar.AddControl(wx.StaticText(toolbar,-1,"    Label Width: "))
         toolbar.AddControl(self.width_spinner)
 
         # Implicit transition display
         toggle_all = wx.ToggleButton(toolbar,-1,'Show Implicit')
         toggle_all.Bind(wx.EVT_TOGGLEBUTTON, self.toggle_all_transitions)
-        self._show_all_transitions = False
 
         toolbar.AddControl(wx.StaticText(toolbar,-1,"    "))
         toolbar.AddControl(toggle_all)
@@ -773,15 +349,6 @@ class SmachViewerFrame(wx.Frame):
         self.SetSizer(vbox)
         self.Center()
 
-        # smach introspection client
-        self._client = smach_ros.IntrospectionClient()
-        self._containers= {}
-        self._selected_paths = []
-
-        # Message subscribers
-        self._structure_subs = {}
-        self._status_subs = {}
-
         self._pub = rospy.Publisher('~image', Image, queue_size=1)
 
         self.Bind(wx.EVT_IDLE,self.OnIdle)
@@ -789,20 +356,12 @@ class SmachViewerFrame(wx.Frame):
 
         # Register mouse event callback
         self.widget.register_select_callback(self.select_cb)
-        self._path = '/'
-        self._needs_zoom = True
-        self._structure_changed = True
 
         # Start a thread in the background to update the server list
-        self._keep_running = True
-        self._server_list_thread = threading.Thread(target=self._update_server_list)
-        self._server_list_thread.start()
-
-        self._update_graph_thread = threading.Thread(target=self._update_graph)
-        self._update_graph_thread.start()
         self._update_tree_thread = threading.Thread(target=self._update_tree)
         self._update_tree_thread.start()
 
+        # image publish timer
         self.timer = wx.Timer(self, 0)
         self.Bind(wx.EVT_TIMER, self.OnTimer)
         self.timer.Start(200)
@@ -810,12 +369,7 @@ class SmachViewerFrame(wx.Frame):
 
     def OnQuit(self,event):
         """Quit Event: kill threads and wait for join."""
-        with self._update_cond:
-            self._keep_running = False
-            self._update_cond.notify_all()
-
-        self._server_list_thread.join()
-        self._update_graph_thread.join()
+        self.kill()
         self._update_tree_thread.join()
         event.Skip()
 
@@ -956,47 +510,11 @@ class SmachViewerFrame(wx.Frame):
         if not self._keep_running:
             return
 
-        # Get the node path
+        SmachViewerBase._structure_msg_update(self, msg, server_name)
         path = msg.path
-        pathsplit = path.split('/')
-        parent_path = '/'.join(pathsplit[0:-1])
-
-        rospy.logdebug("RECEIVED: "+path)
-        rospy.logdebug("CONTAINERS: "+str(list(self._containers.keys())))
-
-        # Initialize redraw flag
-        needs_redraw = False
-
-        if path in self._containers:
-            rospy.logdebug("UPDATING: "+path)
-
-            # Update the structure of this known container
-            needs_redraw = self._containers[path].update_structure(msg)
-        else: 
-            rospy.logdebug("CONSTRUCTING: "+path)
-
-            # Create a new container
-            container = ContainerNode(server_name, msg)
-            self._containers[path] = container
-
-            # Store this as a top container if it has no parent
-            if parent_path == '':
-                self._top_containers[path] = container
-
-            # Append paths to selector
+        if path not in self._containers:
             self.path_combo.Append(path)
             self.path_input.Append(path)
-
-            # We need to redraw thhe graph if this container's parent is already known
-            if parent_path in self._containers:
-                needs_redraw = True
-
-        # Update the graph if necessary
-        if needs_redraw:
-            with self._update_cond:
-                self._structure_changed = True
-                self._needs_zoom = True # TODO: Make it so you can disable this
-                self._update_cond.notify_all()
 
     def _status_msg_update(self, msg):
         """Process status messages."""
@@ -1009,109 +527,52 @@ class SmachViewerFrame(wx.Frame):
             self._set_path(msg.info)
             self._set_max_depth(msg.info.count('/')-1)
 
-        # Get the path to the updating conainer
+        SmachViewerBase._status_msg_update(self, msg)
         path = msg.path
-        rospy.logdebug("STATUS MSG: "+path)
-
         # Check if this is a known container
-        if path in self._containers:
-            # Get the container and check if the status update requires regeneration
-            container = self._containers[path]
-            if container.update_status(msg):
-                with self._update_cond:
-                    self._update_cond.notify_all()
+        if path not in self._containers:
+            return
 
-            # TODO: Is this necessary?
-            path_input_str = self.path_input.GetValue()
-            if path_input_str == path or get_parent_path(path_input_str) == path:
-                wx.PostEvent(
-                        self.path_input.GetEventHandler(),
-                        wx.CommandEvent(wx.wxEVT_COMMAND_COMBOBOX_SELECTED,self.path_input.GetId()))
+        # TODO(???): Is this necessary?
+        path_input_str = self.path_input.GetValue()
+        if path_input_str == path or get_parent_path(path_input_str) == path:
+            wx.PostEvent(
+                    self.path_input.GetEventHandler(),
+                    wx.CommandEvent(
+                        wx.wxEVT_COMMAND_COMBOBOX_SELECTED,
+                        self.path_input.GetId()))
 
-    def _update_graph(self):
-        """This thread continuously updates the graph when it changes.
+    def _update_graph_step(self):
+        containers_to_update = SmachViewerBase._update_graph_step(self)
 
-        The graph gets updated in one of two ways:
+        # Get the containers to update
+        if self._structure_changed or self._needs_zoom:
+            # Set the dotcode to the new dotcode, reset the flags
+            try:
+                self.set_dotcode(self.dotstr, zoom=False)
+            except UnicodeDecodeError as e:
+                # multibyte language only accepts even number
+                label_width = self._label_wrapper.width
+                rospy.logerr('label width {} causes error'.format(label_width))
+                rospy.logerr('maybe multibyte word is in your label.')
+                rospy.logerr(e)
+                rospy.logerr('changing width label width to {}'.format(
+                    label_width + 1))
+                self._label_wrapper.width = label_width + 1
+            self._structure_changed = False
 
-          1: The structure of the SMACH plans has changed, or the display
-          settings have been changed. In this case, the dotcode needs to be
-          regenerated. 
+        if hasattr(self.widget, 'subgraph_shapes'):
+            # Update the styles for the graph if there are any updates
+            for path, tc in containers_to_update.items():
+                tc.set_styles(
+                        self._selected_paths,
+                        0, self._max_depth,
+                        self.widget.items_by_url,
+                        self.widget.subgraph_shapes,
+                        self._containers)
 
-          2: The status of the SMACH plans has changed. In this case, we only
-          need to change the styles of the graph.
-        """
-        while self._keep_running and not rospy.is_shutdown():
-            with self._update_cond:
-                # Wait for the update condition to be triggered
-                self._update_cond.wait()
-
-                # Get the containers to update
-                containers_to_update = {}
-                if self._path in self._containers:
-                    # Some non-root path
-                    containers_to_update = {self._path:self._containers[self._path]}
-                elif self._path == '/':
-                    # Root path
-                    containers_to_update = self._top_containers
-
-                # Check if we need to re-generate the dotcode (if the structure changed)
-                # TODO: needs_zoom is a misnomer
-                if self._structure_changed or self._needs_zoom:
-                    dotstr = "digraph {\n\t"
-                    dotstr += ';'.join([
-                        "compound=true",
-                        "outputmode=nodesfirst",
-                        "labeljust=l",
-                        "nodesep=0.5",
-                        "minlen=2",
-                        "mclimit=5",
-                        "clusterrank=local",
-                        "ranksep=0.75",
-                        # "remincross=true",
-                        # "rank=sink",
-                        "ordering=\"\"",
-                        ])
-                    dotstr += ";\n"
-
-                    # Generate the rest of the graph
-                    # TODO: Only re-generate dotcode for containers that have changed
-                    for path,tc in containers_to_update.items():
-                        dotstr += tc.get_dotcode(
-                                self._selected_paths,[],
-                                0,self._max_depth,
-                                self._containers,
-                                self._show_all_transitions,
-                                self._label_wrapper)
-                    if len(containers_to_update) == 0:
-                        dotstr += '"__empty__" [label="Path not available.", shape="plaintext"]'
-
-                    dotstr += '\n}\n'
-                    self.dotstr = dotstr
-                    # Set the dotcode to the new dotcode, reset the flags
-                    try:
-                        self.set_dotcode(dotstr, zoom=False)
-                    except UnicodeDecodeError as e:
-                        # multibyte language only accepts even number
-                        label_width = self._label_wrapper.width
-                        rospy.logerr('label width {} causes error'.format(label_width))
-                        rospy.logerr('maybe multibyte word is in your label.')
-                        rospy.logerr(e)
-                        rospy.logerr('changing width label width to {}'.format(label_width + 1))
-                        self._label_wrapper.width = label_width + 1
-                    self._structure_changed = False
-
-                if hasattr(self.widget, 'subgraph_shapes'):
-                    # Update the styles for the graph if there are any updates
-                    for path,tc in containers_to_update.items():
-                        tc.set_styles(
-                                self._selected_paths,
-                                0,self._max_depth,
-                                self.widget.items_by_url,
-                                self.widget.subgraph_shapes,
-                                self._containers)
-
-                # Redraw
-                self.widget.Refresh()
+        # Redraw
+        self.widget.Refresh()
 
     def set_dotcode(self, dotcode, zoom=True):
         """Set the xdot view's dotcode and refresh the display."""
@@ -1164,40 +625,6 @@ class SmachViewerFrame(wx.Frame):
             self.Refresh()
             # Re-populate path combo
             self._needs_refresh = False
-
-    def _update_server_list(self):
-        """Update the list of known SMACH introspection servers."""
-        while self._keep_running:
-            # Update the server list
-            server_names = self._client.get_servers()
-            new_server_names = [sn for sn in server_names if sn not in self._status_subs]
-
-            # Create subscribers for new servers
-            for server_name in new_server_names:
-                self._structure_subs[server_name] = rospy.Subscriber(
-                        server_name+smach_ros.introspection.STRUCTURE_TOPIC,
-                        SmachContainerStructure,
-                        callback = self._structure_msg_update,
-                        callback_args = server_name,
-                        queue_size=50)
-
-                self._status_subs[server_name] = rospy.Subscriber(
-                        server_name+smach_ros.introspection.STATUS_TOPIC,
-                        SmachContainerStatus,
-                        callback = self._status_msg_update,
-                        queue_size=50)
-
-            # This doesn't need to happen very often
-            rospy.sleep(1.0)
-            
-            
-            #self.server_combo.AppendItems([s for s in self._servers if s not in current_servers])
-
-            # Grab the first server
-            #current_value = self.server_combo.GetValue()
-            #if current_value == '' and len(self._servers) > 0:
-            #    self.server_combo.SetStringSelection(self._servers[0])
-            #    self.set_server(self._servers[0])
 
     def OnTimer(self, event):
         if self._pub.get_num_connections() < 1:
