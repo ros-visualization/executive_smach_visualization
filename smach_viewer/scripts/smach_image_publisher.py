@@ -79,7 +79,9 @@ class SmachImagePublisher(SmachViewerBase):
             rospy.logerr("ERROR PARSING DOT CODE {}".format(error))
             return False
 
-        if not os.path.exists(filepath):
+        if not os.path.exists(self.filepath):
+            return
+        if os.path.getsize(self.filepath) == 0:
             return
         img = cv2.imread(filepath)
         img_msg = self.bridge.cv2_to_imgmsg(img, encoding='bgr8')
