@@ -56,6 +56,12 @@ class SmachImagePublisher(SmachViewerBase):
         super(SmachImagePublisher, self).__init__()
         self.bridge = cv_bridge.CvBridge()
         duration = rospy.get_param('~duration', 0.1)
+        self.image_width = rospy.get_param('~image_width', 1000)
+        self.image_height = rospy.get_param('~image_height', 1500)
+        self.image_dpi = rospy.get_param('~image_dpi', 500)
+
+        self.filepath = '/tmp/smach_image_publisher_{}.png'.format(
+            os.getpid())
         self._timer = rospy.Timer(
             rospy.Duration(duration), self._timer_cb)
         self._pub = rospy.Publisher('~image', Image, queue_size=1)
@@ -65,9 +71,17 @@ class SmachImagePublisher(SmachViewerBase):
             dotcode = copy.copy(self.dotstr)
         if sys.version_info[0] < 3 and isinstance(dotcode, unicode):
             dotcode = dotcode.encode('utf8')
-        filepath = '/tmp/smach_image_publisher.png'
+
+        w_scale = self.image_width // self.image_dpi
+        h_scale = self.image_height // self.image_dpi
         p = subprocess.Popen(
-            ['dot', '-Tpng', '-o{}'.format(filepath)],
+            [
+                'dot',
+                '-Tpng',
+                '-Gsize={},{}\\!'.format(w_scale, h_scale),
+                '-Gdpi={}'.format(self.image_dpi),
+                '-o{}'.format(self.filepath)
+            ],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -83,7 +97,17 @@ class SmachImagePublisher(SmachViewerBase):
             return
         if os.path.getsize(self.filepath) == 0:
             return
-        img = cv2.imread(filepath)
+
+        img = cv2.imread(self.filepath)
+        H, W, _ = img.shape
+        if self.image_width > W or self.image_height > H:
+            top_pad = (self.image_height - H) // 2
+            bottom_pad = self.image_height - H - top_pad
+            left_pad = (self.image_width - W) // 2
+            right_pad = self.image_width - W - left_pad
+            img = cv2.copyMakeBorder(
+                img, top_pad, bottom_pad, left_pad, right_pad,
+                cv2.BORDER_CONSTANT, value=(255, 255, 255))
         img_msg = self.bridge.cv2_to_imgmsg(img, encoding='bgr8')
         self._pub.publish(img_msg)
 
@@ -91,8 +115,10 @@ class SmachImagePublisher(SmachViewerBase):
 if __name__ == '__main__':
     rospy.init_node('smach_image_publisher')
     app = SmachImagePublisher()
+
     def signal_handler():
         rospy.logwarn('Killing threads...')
         app.kill()
+
     rospy.on_shutdown(signal_handler)
     rospy.spin()
