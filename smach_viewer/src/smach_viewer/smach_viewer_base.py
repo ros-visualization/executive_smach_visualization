@@ -183,28 +183,50 @@ class ContainerNode(object):
 
             # Iterate over children
             for child_label in self._children:
-                child_attrs = {
-                        'style':'filled,setlinewidth(2)',
-                        'color':'#000000FF',
-                        'fillcolor':'#FFFFFF00'
-                        }
-
                 child_path = '/'.join([self._path,child_label])
                 # Generate dotcode for children
                 if child_path in containers:
-                    child_attrs['style'] += ',rounded'
+                    if child_label in self._active_states:
+                        child_color = '#5C7600FF'
+                        child_fillcolor = '#C0F700FF'
+                        child_linewidth = 5
+                    else:
+                        child_color = '#000000FF'
+                        child_fillcolor = 'gray'
+                        child_linewidth = 2
+
+                    child_attrs = {
+                        'style': 'filled,setlinewidth({}),rounded'.format(child_linewidth),
+                        'color': child_color,
+                        'fillcolor': child_fillcolor,
+                    }
 
                     dotstr += containers[child_path].get_dotcode(
-                            selected_paths,
-                            closed_paths,
-                            depth+1, max_depth,
-                            containers,
-                            show_all,
-                            label_wrapper,
-                            child_attrs)
+                        selected_paths,
+                        closed_paths,
+                        depth+1, max_depth,
+                        containers,
+                        show_all,
+                        label_wrapper,
+                        child_attrs
+                    )
                 else:
-                    child_attrs['label'] = '\\n'.join(label_wrapper.wrap(child_label))
-                    child_attrs['URL'] = child_path
+                    if child_label in self._active_states:
+                        child_color = '#5C7600FF'
+                        child_fillcolor = '#C0F700FF'
+                        child_linewidth = 5
+                    else:
+                        child_color = '#000000FF'
+                        child_fillcolor = '#FFFFFFFF'
+                        child_linewidth = 2
+
+                    child_attrs = {
+                        'style': 'filled,setlinewidth({})'.format(child_linewidth),
+                        'color': child_color,
+                        'fillcolor': child_fillcolor,
+                        'label': '\\n'.join(label_wrapper.wrap(child_label)),
+                        'URL': child_path,
+                    }
                     dotstr += '"%s" %s;\n' % (child_path, attr_string(child_attrs))
 
             # Iterate over edges
