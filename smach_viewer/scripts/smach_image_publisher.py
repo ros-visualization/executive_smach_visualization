@@ -113,6 +113,7 @@ class SmachImagePublisher(SmachViewerBase):
                 img, top_pad, bottom_pad, left_pad, right_pad,
                 cv2.BORDER_CONSTANT, value=(255, 255, 255))
         img_msg = self.bridge.cv2_to_imgmsg(img, encoding='bgr8')
+        img_msg.header.stamp = rospy.Time.now()
         self._pub.publish(img_msg)
         compressed_img_msg = CompressedImage()
         compressed_img_msg.header = img_msg.header
