@@ -4,11 +4,13 @@ import copy
 import cv2
 import cv_bridge
 import imp
+import numpy as np
 import os
 import rospy
 import subprocess
 import sys
 
+from sensor_msgs.msg import CompressedImage
 from sensor_msgs.msg import Image
 
 try:
@@ -65,6 +67,8 @@ class SmachImagePublisher(SmachViewerBase):
         self._timer = rospy.Timer(
             rospy.Duration(duration), self._timer_cb)
         self._pub = rospy.Publisher('~image', Image, queue_size=1)
+        self._pub_compressed = rospy.Publisher(
+            '~image/compressed', CompressedImage, queue_size=1)
 
     def _timer_cb(self, event):
         with self._update_cond:
@@ -110,6 +114,13 @@ class SmachImagePublisher(SmachViewerBase):
                 cv2.BORDER_CONSTANT, value=(255, 255, 255))
         img_msg = self.bridge.cv2_to_imgmsg(img, encoding='bgr8')
         self._pub.publish(img_msg)
+        compressed_img_msg = CompressedImage()
+        compressed_img_msg.header = img_msg.header
+        compressed_img_msg.format = img_msg.encoding
+        compressed_img_msg.format += '; jpeg compressed bgr8'
+        compressed_img_msg.data = np.array(
+            cv2.imencode('.jpg', img)[1]).tostring()
+        self._pub_compressed.publish(compressed_img_msg)
 
 
 if __name__ == '__main__':
