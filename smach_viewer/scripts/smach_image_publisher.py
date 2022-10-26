@@ -9,6 +9,7 @@ import os
 import rospy
 import subprocess
 import sys
+import time
 
 from sensor_msgs.msg import CompressedImage
 from sensor_msgs.msg import Image
@@ -123,6 +124,14 @@ class SmachImagePublisher(SmachViewerBase):
             cv2.imencode('.jpg', img)[1]).tostring()
         self._pub_compressed.publish(compressed_img_msg)
 
+    def remove_file(self):
+        # wait and loop until file is removed
+        while os.path.exists(self.filepath):
+            rospy.logwarn(
+                'Removing file: {}'.format(self.filepath))
+            os.remove(self.filepath)
+            time.sleep(0.1)
+
 
 if __name__ == '__main__':
     rospy.init_node('smach_image_publisher')
@@ -131,6 +140,7 @@ if __name__ == '__main__':
     def signal_handler():
         rospy.logwarn('Killing threads...')
         app.kill()
+        app.remove_file()
 
     rospy.on_shutdown(signal_handler)
     rospy.spin()
