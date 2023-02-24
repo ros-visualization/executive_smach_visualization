@@ -2,8 +2,8 @@
 Changelog for package smach_viewer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+4.1.0 (2023-02-24)
+------------------
 * add timestamp in published image (`#50 <https://github.com/ros-visualization/executive_smach_visualization/issues/50>`_)
 
   * some tools, for example jsk_rosbag_tools requries all message have time stamp
