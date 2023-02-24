@@ -648,6 +648,7 @@ class SmachViewerFrame(wx.Frame, SmachViewerBase):
         img = np.frombuffer(buf, dtype=np.uint8)
         bridge = cv_bridge.CvBridge()
         img_msg = bridge.cv2_to_imgmsg(img.reshape((y, x, 3)), encoding='rgb8')
+        img_msg.header.stamp = rospy.Time.now()
         self._pub.publish(img_msg)
 
     def ShowControlsDialog(self,event):
