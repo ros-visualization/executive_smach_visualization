@@ -2,6 +2,9 @@
 Changelog for package executive_smach_visualization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 4.0.1 (2022-08-02)
 ------------------
 

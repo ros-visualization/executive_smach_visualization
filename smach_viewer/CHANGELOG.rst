@@ -2,6 +2,29 @@
 Changelog for package smach_viewer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* add timestamp in published image (`#50 <https://github.com/ros-visualization/executive_smach_visualization/issues/50>`_)
+
+  * some tools, for example jsk_rosbag_tools requries all message have time stamp
+
+* [smach_viewer] remove smach image in /tmp when the node is killed (`#48 <https://github.com/ros-visualization/executive_smach_visualization/issues/48>`_)
+
+  * remove smach image in /tmp when the node is killed
+
+* [smach_viewer] add smach_image_publisher.py for headless environment (`#46 <https://github.com/ros-visualization/executive_smach_visualization/issues/46>`_)
+
+  * add time stamp in image topics
+  * add compressed image publisher
+  * change file name and set constant image size
+  * check if file is proper
+  * change color in active states
+  * import not local file
+  * add smach_image_publisher.py
+  * split and make SmachViewerBase, utils and text_wrapper
+
+* Contributors: Kei Okada, Shingo Kitagawa
+
 4.0.1 (2022-08-02)
 ------------------
 * Fix 4.0.0, which does not work on both Melodic/Noetic (`#43 <https://github.com/ros-visualization/executive_smach_visualization/issues/43>`_)
