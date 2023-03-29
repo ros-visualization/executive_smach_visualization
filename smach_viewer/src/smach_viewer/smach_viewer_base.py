@@ -71,13 +71,10 @@ class ContainerNode(object):
 
     def _load_local_data(self, msg):
         """Unpack the user data"""
-        try:
+        if isinstance(msg.local_data, str):
+            local_data = pickle.loads(msg.local_data.encode('utf-8'))
+        else:
             local_data = pickle.loads(msg.local_data)
-        except:
-            if isinstance(msg.local_data, str):
-                local_data = pickle.loads(base64.b64decode(msg.local_data))
-            else:
-                local_data = pickle.loads(base64.b64decode(bytes(str(msg.local_data).encode('utf-8'))))
         return local_data
 
     def update_status(self, msg):
