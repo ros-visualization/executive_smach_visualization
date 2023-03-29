@@ -530,7 +530,7 @@ class WxDotWindow(wx.Panel):
     """Set xdot code."""
     #print xdotcode
     if sys.version_info[0] >= 3:
-      parser = MyXDotParser(bytes(str(xdotcode).encode("utf-8")))
+      parser = MyXDotParser(xdotcode.encode("utf-8"))
     else:
       parser = XDotParser(xdotcode)
     self.graph = parser.parse()
