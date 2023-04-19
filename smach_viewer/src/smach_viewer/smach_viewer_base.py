@@ -2,7 +2,6 @@
 
 import threading
 
-import base64
 import pickle
 import roslib
 import rospy
