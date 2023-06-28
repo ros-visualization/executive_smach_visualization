@@ -2,12 +2,12 @@
 
 import threading
 
-import base64
 import pickle
 import roslib
 import rospy
 import smach
 import smach_ros
+import sys
 
 from smach_viewer.text_wrapper import TextWrapper
 from smach_viewer.utils import attr_string
@@ -71,8 +71,9 @@ class ContainerNode(object):
 
     def _load_local_data(self, msg):
         """Unpack the user data"""
-        if isinstance(msg.local_data, str):
-            local_data = pickle.loads(msg.local_data.encode('utf-8'))
+        if sys.version_info.major >= 3:
+            local_data = pickle.loads(
+                msg.local_data.encode('utf-8'), encoding='utf-8')
         else:
             local_data = pickle.loads(msg.local_data)
         return local_data
