@@ -4,6 +4,7 @@ import threading
 
 import pickle
 import base64
+import re
 import roslib
 import rospy
 import smach
@@ -73,8 +74,12 @@ class ContainerNode(object):
     def _load_local_data(self, msg):
         """Unpack the user data"""
         if sys.version_info.major >= 3:
-            local_data_raw_bytes = base64.b64decode(msg.local_data)
-            local_data = pickle.loads(local_data_raw_bytes)
+            base64_regex = re.compile(r'^[A-Za-z0-9+/]*={0,2}$')
+            if base64_regex.fullmatch(msg.local_data):
+                local_data_raw_bytes = base64.b64decode(msg.local_data)
+                local_data = pickle.loads(local_data_raw_bytes)
+            else:
+                local_data = pickle.loads(msg.local_data.encode('utf-8'))
         else:
             local_data = pickle.loads(msg.local_data)
         return local_data
