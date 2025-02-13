@@ -13,21 +13,38 @@ jobs:
         include:
           - ROS_DISTRO: melodic
             PYTHON_EXECUTABLE: python
+            DOCKER_IMAGE: ros:melodic-ros-core
           - ROS_DISTRO: noetic
             PYTHON_EXECUTABLE: python3
+            DOCKER_IMAGE: ros:noetic-ros-core
+          - ROS_DISTRO: one
+            PYTHON_EXECUTABLE: python3
+            DOCKER_IMAGE: ubuntu:22.04
+            ROS_REPOSITORY_URL: https://raw.githubusercontent.com/k-okada/ros-o-builder/jammy-one-unstable/repository
           - ROS_DISTRO: melodic
             PYTHON_EXECUTABLE: python
             USE_SOURCE_SMACH_ROS: true
+            DOCKER_IMAGE: ros:melodic-ros-core
           - ROS_DISTRO: noetic
             PYTHON_EXECUTABLE: python3
             USE_SOURCE_SMACH_ROS: true
+            DOCKER_IMAGE: ros:noetic-ros-core
+          - ROS_DISTRO: one
+            PYTHON_EXECUTABLE: python3
+            USE_SOURCE_SMACH_ROS: true
+            DOCKER_IMAGE: ubuntu:22.04
+            ROS_REPOSITORY_URL: https://raw.githubusercontent.com/k-okada/ros-o-builder/jammy-one-unstable/repository
 
     container:
-      image: ros:${{ matrix.ROS_DISTRO }}-ros-core
+      image: ${{ matrix.DOCKER_IMAGE }}
       volumes:
         - /tmp/node20:/__e/node20
 
     steps:
+      - name: Setup ROS-O deb repository
+        if: ${{ matrix.DOCKER_IMAGE == 'ubuntu:22.04' }}
+        run: apt update -y -qq && apt install -y -qq sudo
+
       - name: Update apt packages
         run: sudo apt update -y -qq
 
@@ -44,6 +61,21 @@ jobs:
       - name: Chcekout
         uses: actions/checkout@v4
 
+      - name: Setup ROS-O deb repository
+        if: ${{ matrix.ROS_REPOSITORY_URL }}
+        run: |
+          set -x
+          apt install -qq -y ca-certificates
+          echo "deb [trusted=yes] ${{ matrix.ROS_REPOSITORY_URL }}/ ./" | tee /etc/apt/sources.list.d/ros-o-builder.list
+          apt update
+          DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt install -qq -y python3-rosdep2
+          echo "yaml ${{ matrix.ROS_REPOSITORY_URL }}/local.yaml debian" | tee /etc/ros/rosdep/sources.list.d/1-ros-o-builder.list
+          rosdep update
+          #
+          DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt install -y software-properties-common
+          add-apt-repository -y ppa:k-okada/python3-catkin-tools
+          apt update -y -qq
+
       - name: Start X server
         run: |
           echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections || echo "failing on ros-ubuntu is OK" # set non interactive tzdata https://stackoverflow.com/questions/8671308/non-interactive-method-for-dpkg-reconfigure-tzdata
@@ -58,10 +90,12 @@ jobs:
 
       - name: Setup ROS
         run: |
-          sudo apt -y -qq install ${{ matrix.PYTHON_EXECUTABLE }}-rosdep ${{ matrix.PYTHON_EXECUTABLE }}-catkin-tools ros-${{ matrix.ROS_DISTRO }}-catkin ros-${{ matrix.ROS_DISTRO }}-ros-environment make gcc g++
+          [ ${{ matrix.ROS_DISTRO }} = "one" ] && DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt install -qq -y catkin
+          [ ${{ matrix.ROS_DISTRO }} = "one" ] || sudo apt -y -qq install ${{ matrix.PYTHON_EXECUTABLE }}-rosdep ros-${{ matrix.ROS_DISTRO }}-catkin
+          sudo apt -y -qq install ${{ matrix.PYTHON_EXECUTABLE }}-catkin-tools ros-${{ matrix.ROS_DISTRO }}-ros-environment make gcc g++
           sudo apt -y -qq install ros-${{ matrix.ROS_DISTRO }}-roseus ros-${{ matrix.ROS_DISTRO }}-roseus-smach
-          sudo rosdep init
-          rosdep update --include-eol-distros
+          # ROS-O instaelled rosdep at 'Setup ROS-O deb repository'
+          [ -e /etc/ros/rosdep/sources.list.d ] || (sudo rosdep init && rosdep update --include-eol-distros)
 
       - name: Setup Workspace
         run: |
