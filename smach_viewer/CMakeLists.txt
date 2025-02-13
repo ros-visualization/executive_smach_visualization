@@ -22,6 +22,7 @@ catkin_install_python(
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
   add_rostest(test/test_smach_py.test)
+  add_rostest(test/test_smach_image.test)
   find_package(roseus QUIET)
   if(roseus_FOUND)
     add_rostest(test/test_smach_eus.test)

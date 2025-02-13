@@ -1,0 +1,15 @@
+<launch>
+  <node pkg="smach_viewer"
+	name="smach_viewer" type="smach_viewer.py"
+	output="screen" />
+  <node pkg="smach_viewer"
+        name="test_smach_py" type="test_smach.py" />
+  <test test-name="smach_viewer_test" pkg="rostest" type="publishtest" name="smach_viewer_test" >
+    <rosparam>
+      topics:
+        - name: /smach_viewer/image
+          timeout: 10
+          negative: False
+    </rosparam>    
+  </test>
+</launch>
