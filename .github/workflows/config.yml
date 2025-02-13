@@ -1,0 +1,152 @@
+on: [push, pull_request]
+
+env:
+  DISPLAY: ':0.0'
+
+jobs:
+  ros:
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - ROS_DISTRO: melodic
+            PYTHON_EXECUTABLE: python
+            DOCKER_IMAGE: ros:melodic-ros-core
+          - ROS_DISTRO: noetic
+            PYTHON_EXECUTABLE: python3
+            DOCKER_IMAGE: ros:noetic-ros-core
+          - ROS_DISTRO: one
+            PYTHON_EXECUTABLE: python3
+            DOCKER_IMAGE: ubuntu:22.04
+            ROS_REPOSITORY_URL: https://raw.githubusercontent.com/k-okada/ros-o-builder/jammy-one-unstable/repository
+          - ROS_DISTRO: melodic
+            PYTHON_EXECUTABLE: python
+            USE_SOURCE_SMACH_ROS: true
+            DOCKER_IMAGE: ros:melodic-ros-core
+          - ROS_DISTRO: noetic
+            PYTHON_EXECUTABLE: python3
+            USE_SOURCE_SMACH_ROS: true
+            DOCKER_IMAGE: ros:noetic-ros-core
+          - ROS_DISTRO: one
+            PYTHON_EXECUTABLE: python3
+            USE_SOURCE_SMACH_ROS: true
+            DOCKER_IMAGE: ubuntu:22.04
+            ROS_REPOSITORY_URL: https://raw.githubusercontent.com/k-okada/ros-o-builder/jammy-one-unstable/repository
+
+    container:
+      image: ${{ matrix.DOCKER_IMAGE }}
+      volumes:
+        - /tmp/node20:/__e/node20
+
+    steps:
+      - name: Setup ROS-O deb repository
+        if: ${{ matrix.DOCKER_IMAGE == 'ubuntu:22.04' }}
+        run: apt update -y -qq && apt install -y -qq sudo
+
+      - name: Update apt packages
+        run: sudo apt update -y -qq
+
+      - name: Try to replace `node` with an glibc 2.17
+        shell: bash
+        run: |
+          ls -lar /__e/node20 &&
+          sudo apt-get install -y curl &&
+          curl -Lo /tmp/node.tar.gz https://unofficial-builds.nodejs.org/download/release/v20.17.0/node-v20.17.0-linux-x64-glibc-217.tar.gz &&
+          cd /__e/node20 &&
+          tar -x --strip-components=1 -f /tmp/node.tar.gz &&
+          ls -lar /__e/node20/bin/
+
+      - name: Chcekout
+        uses: actions/checkout@v4
+
+      - name: Setup ROS-O deb repository
+        if: ${{ matrix.ROS_REPOSITORY_URL }}
+        run: |
+          set -x
+          apt install -qq -y ca-certificates
+          echo "deb [trusted=yes] ${{ matrix.ROS_REPOSITORY_URL }}/ ./" | tee /etc/apt/sources.list.d/ros-o-builder.list
+          apt update
+          DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt install -qq -y python3-rosdep2
+          echo "yaml ${{ matrix.ROS_REPOSITORY_URL }}/local.yaml debian" | tee /etc/ros/rosdep/sources.list.d/1-ros-o-builder.list
+          rosdep update
+          #
+          DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt install -y software-properties-common
+          add-apt-repository -y ppa:k-okada/python3-catkin-tools
+          apt update -y -qq
+
+      - name: Start X server
+        run: |
+          echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections || echo "failing on ros-ubuntu is OK" # set non interactive tzdata https://stackoverflow.com/questions/8671308/non-interactive-method-for-dpkg-reconfigure-tzdata
+          sudo apt-get -y -qq install mesa-utils x11-xserver-utils xserver-xorg-video-dummy wget
+          export DISPLAY=:0
+          wget https://raw.githubusercontent.com/jsk-ros-pkg/jsk_travis/master/dummy.xorg.conf -O /tmp/dummy.xorg.conf
+          sudo Xorg -noreset +extension GLX +extension RANDR +extension RENDER -logfile /tmp/xorg.log -config /tmp/dummy.xorg.conf $DISPLAY &
+          sleep 3 # wait x server up
+          export QT_X11_NO_MITSHM=1 # http://wiki.ros.org/docker/Tutorials/GUI
+          xhost +local:root
+        shell: bash
+
+      - name: Setup ROS
+        run: |
+          [ ${{ matrix.ROS_DISTRO }} = "one" ] && DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt install -qq -y catkin
+          [ ${{ matrix.ROS_DISTRO }} = "one" ] || sudo apt -y -qq install ${{ matrix.PYTHON_EXECUTABLE }}-rosdep ros-${{ matrix.ROS_DISTRO }}-catkin
+          sudo apt -y -qq install ${{ matrix.PYTHON_EXECUTABLE }}-catkin-tools ros-${{ matrix.ROS_DISTRO }}-ros-environment make gcc g++
+          sudo apt -y -qq install ros-${{ matrix.ROS_DISTRO }}-roseus ros-${{ matrix.ROS_DISTRO }}-roseus-smach
+          # ROS-O instaelled rosdep at 'Setup ROS-O deb repository'
+          [ -e /etc/ros/rosdep/sources.list.d ] || (sudo rosdep init && rosdep update --include-eol-distros)
+
+      - name: Setup Workspace
+        run: |
+          source /opt/ros/${{ matrix.ROS_DISTRO }}/setup.bash
+          set -x
+          # setup workspace
+          mkdir -p ~/ws/src
+          cd ~/ws/src
+          ln -sf $GITHUB_WORKSPACE .
+          rosdep install -qq -r -y --from-path . --ignore-src || echo "OK"
+        shell: bash
+
+      - name: Checkout smach_ros source tree
+        if: ${{ matrix.USE_SOURCE_SMACH_ROS }}
+        run: |
+          sudo apt-get -y -qq install git
+          cd ~/ws/src
+          git clone https://github.com/ros/executive_smach.git -b noetic-devel
+        shell: bash
+
+      - name: Compile Packages
+        run: |
+          source /opt/ros/${{ matrix.ROS_DISTRO }}/setup.bash
+          set -x
+          cd ~/ws/
+          catkin build --no-status -sv ${{ matrix.CATKIN_OPTIONS }} --cmake-args -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON ${{ matrix.CMAKE_OPTIONS }}
+        shell: bash
+
+      - name: Test Packages
+        id: test
+        run: |
+          source ~/ws/devel/setup.bash
+          set -x
+          cd ~/ws/
+          catkin test --no-status -sv ${{ matrix.CATKIN_OPTIONS }} --cmake-args -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON ${{ matrix.CMAKE_OPTIONS }}
+        shell: bash
+
+      - name: Show Test Results
+        if: ${{ always() }}
+        run: |
+          source ~/ws/devel/setup.bash
+          set -x
+          cd ~/ws/
+          catkin_test_results --verbose --all build
+        shell: bash
+
+      - name: Run Test Manually
+        if: ${{ always() && steps.test.conclusion == 'failure' }}
+        run: |
+          source ~/ws/devel/setup.bash
+          set -x
+          cd ~/ws/
+          find $(rospack find smach_viewer) -iname "*.test" -exec rostest -t {} \;
+        shell: bash

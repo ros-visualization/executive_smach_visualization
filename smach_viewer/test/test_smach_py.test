@@ -1,0 +1,9 @@
+<launch>
+  <node pkg="smach_viewer"
+        name="smach_viewer" type="smach_viewer.py"
+        output="screen" required="true" />
+  <node pkg="smach_viewer"
+        name="test_smach_py" type="test_smach.py" />
+  <test test-name="smach_viewer_python_test"
+        pkg="smach_viewer" type="test_rosout_error.py" name="smach_viewer_python_test" />
+</launch>
