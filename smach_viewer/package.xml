@@ -26,6 +26,7 @@
   <exec_depend>cv_bridge</exec_depend>
   <exec_depend>smach_ros</exec_depend>
   <exec_depend>smach_msgs</exec_depend>
+  <exec_depend>python_qt_binding</exec_depend>
 
   <exec_depend condition="$ROS_PYTHON_VERSION == 2">wxpython</exec_depend>
   <exec_depend condition="$ROS_PYTHON_VERSION == 2">python-xdot</exec_depend>
