@@ -15,6 +15,12 @@ jobs:
             PYTHON_EXECUTABLE: python
           - ROS_DISTRO: noetic
             PYTHON_EXECUTABLE: python3
+          - ROS_DISTRO: melodic
+            PYTHON_EXECUTABLE: python
+            USE_SOURCE_SMACH_ROS: true
+          - ROS_DISTRO: noetic
+            PYTHON_EXECUTABLE: python3
+            USE_SOURCE_SMACH_ROS: true
 
     container:
       image: ros:${{ matrix.ROS_DISTRO }}-ros-core
@@ -66,6 +72,14 @@ jobs:
           cd ~/ws/src
           ln -sf $GITHUB_WORKSPACE .
           rosdep install -qq -r -y --from-path . --ignore-src || echo "OK"
+        shell: bash
+
+      - name: Checkout smach_ros source tree
+        if: ${{ matrix.USE_SOURCE_SMACH_ROS }}
+        run: |
+          sudo apt-get -y -qq install git
+          cd ~/ws/src
+          git clone https://github.com/ros/executive_smach.git -b noetic-devel
         shell: bash
 
       - name: Compile Packages
