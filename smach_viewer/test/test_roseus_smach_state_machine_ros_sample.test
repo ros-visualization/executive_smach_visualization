@@ -1,0 +1,9 @@
+<launch>
+  <node pkg="smach_viewer"
+        name="smach_viewer" type="smach_viewer.py"
+        output="screen" required="true" />
+  <node pkg="roseus_smach"
+        name="test_smach_eus_exec_smach_simple" type="state-machine-ros-sample.l" args="'(exec-smach-simple)'" />
+  <test test-name="smach_viewer_eus_test"
+        pkg="smach_viewer" type="test_rosout_error.py" name="smach_viewer_eus_test" />
+</launch>
