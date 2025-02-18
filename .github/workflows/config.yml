@@ -105,6 +105,7 @@ jobs:
           mkdir -p ~/ws/src
           cd ~/ws/src
           ln -sf $GITHUB_WORKSPACE .
+          [ ${{ matrix.ROS_DISTRO }} != "one" ] || (sudo apt install -y -qq git; sudo apt remove -y -qq ros-${{ matrix.ROS_DISTRO }}-roseus-smach; git clone https://github.com/jsk-ros-pkg/jsk_roseus.git; )
           rosdep install -qq -r -y --from-path . --ignore-src || echo "OK"
         shell: bash
 
@@ -130,6 +131,7 @@ jobs:
           source ~/ws/devel/setup.bash
           set -x
           cd ~/ws/
+          [ ${{ matrix.ROS_DISTRO }} != "one" ] || touch src/jsk_roseus/CATKIN_IGNORE
           catkin test --no-status -sv ${{ matrix.CATKIN_OPTIONS }} --cmake-args -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON ${{ matrix.CMAKE_OPTIONS }}
         shell: bash
 
