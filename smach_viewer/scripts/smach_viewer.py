@@ -484,6 +484,9 @@ class SmachViewerFrame(wx.Frame, SmachViewerBase):
 
                 # Generate the userdata string
                 ud_str = ''
+                if not isinstance(container._local_data._data, dict):
+                    rospy.logwarn("userdata is not dictionary({}), please fix sender proram".format(container._local_data._data))
+                    container._local_data._data = {}
                 for (k,v) in container._local_data._data.items():
                     ud_str += str(k)+": "
                     vstr = str(v)

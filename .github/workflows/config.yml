@@ -122,6 +122,8 @@ jobs:
           source /opt/ros/${{ matrix.ROS_DISTRO }}/setup.bash
           set -x
           cd ~/ws/
+          # smach_viewer is not depend on roseus_smach, but we need to build roseus_smach before smach_viewer for tests
+          [ ${{ matrix.ROS_DISTRO }} != "one" ] || catkin build roseus_smach --no-status -sv ${{ matrix.CATKIN_OPTIONS }} --cmake-args -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON ${{ matrix.CMAKE_OPTIONS }}
           catkin build --no-status -sv ${{ matrix.CATKIN_OPTIONS }} --cmake-args -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON ${{ matrix.CMAKE_OPTIONS }}
         shell: bash
 
@@ -130,9 +132,8 @@ jobs:
         run: |
           source ~/ws/devel/setup.bash
           set -x
-          cd ~/ws/
-          [ ${{ matrix.ROS_DISTRO }} != "one" ] || touch src/jsk_roseus/CATKIN_IGNORE
-          catkin test --no-status -sv ${{ matrix.CATKIN_OPTIONS }} --cmake-args -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON ${{ matrix.CMAKE_OPTIONS }}
+          cd ~/ws/build/smach_viewer
+          make run_tests
         shell: bash
 
       - name: Show Test Results

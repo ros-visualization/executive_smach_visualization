@@ -1,0 +1,10 @@
+<launch>
+  <arg name="target_python" default="true" />
+  <arg name="target_roseus" default="false" />
+  <node if="$(arg target_python)"
+        pkg="smach_viewer" name="test_smach_py" type="test_smach.py" />
+  <node if="$(arg target_roseus)"
+        pkg="roseus" name="test_smach_eus" type="roseus" args="$(find smach_viewer)/test/test_smach.l" />
+  <test test-name="smach_viewer_event_test"
+        pkg="smach_viewer" type="test_smach_event.py" name="smach_viewer_event_test" />
+</launch>
