@@ -19,12 +19,14 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import sys
+
 try:
     # intentionally use from xdot, instead of from .xdot, because we want to use local xdot for Python2 and system xdot for Python3
     from xdot.ui.elements import *
     from xdot.ui.animation import *
     from xdot.dot.lexer import *
-    from xdot.dot.parser import *
+    from xdot.dot.parser import XDotParser
     import subprocess
 except:
     from xdot import *
