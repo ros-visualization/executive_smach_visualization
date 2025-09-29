@@ -20,7 +20,9 @@ jobs:
           - ROS_DISTRO: one
             PYTHON_EXECUTABLE: python3
             DOCKER_IMAGE: ubuntu:22.04
-            ROS_REPOSITORY_URL: https://raw.githubusercontent.com/k-okada/ros-o-builder/jammy-one-unstable/repository
+          - ROS_DISTRO: one
+            PYTHON_EXECUTABLE: python3
+            DOCKER_IMAGE: ubuntu:24.04
           - ROS_DISTRO: melodic
             PYTHON_EXECUTABLE: python
             USE_SOURCE_SMACH_ROS: true
@@ -33,7 +35,6 @@ jobs:
             PYTHON_EXECUTABLE: python3
             USE_SOURCE_SMACH_ROS: true
             DOCKER_IMAGE: ubuntu:22.04
-            ROS_REPOSITORY_URL: https://raw.githubusercontent.com/k-okada/ros-o-builder/jammy-one-unstable/repository
 
     container:
       image: ${{ matrix.DOCKER_IMAGE }}
@@ -42,7 +43,7 @@ jobs:
 
     steps:
       - name: Setup ROS-O deb repository
-        if: ${{ matrix.DOCKER_IMAGE == 'ubuntu:22.04' }}
+        if: ${{ matrix.ROS_DISTRO == 'one' }}
         run: apt update -y -qq && apt install -y -qq sudo
 
       - name: Update apt packages
@@ -62,19 +63,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup ROS-O deb repository
-        if: ${{ matrix.ROS_REPOSITORY_URL }}
+        if: ${{ matrix.ROS_DISTRO == 'one' }}
         run: |
           set -x
-          apt install -qq -y ca-certificates
-          echo "deb [trusted=yes] ${{ matrix.ROS_REPOSITORY_URL }}/ ./" | tee /etc/apt/sources.list.d/ros-o-builder.list
+          apt install -qq -y ca-certificates lsb-release
+          echo "deb [trusted=yes] https://ros.packages.techfak.net $(lsb_release -cs)-testing main" | tee /etc/apt/sources.list.d/ros-o-builder.list
           apt update
-          DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt install -qq -y python3-rosdep2
-          echo "yaml ${{ matrix.ROS_REPOSITORY_URL }}/local.yaml debian" | tee /etc/ros/rosdep/sources.list.d/1-ros-o-builder.list
-          rosdep update
-          #
-          DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt install -y software-properties-common
-          add-apt-repository -y ppa:k-okada/python3-catkin-tools
-          apt update -y -qq
+          mkdir -p /etc/ros/rosdep/sources.list.d/
+          echo "yaml https://ros.packages.techfak.net/ros-one.yaml ubuntu" | tee /etc/ros/rosdep/sources.list.d/1-ros-o-builder.list
 
       - name: Start X server
         run: |
@@ -90,12 +86,13 @@ jobs:
 
       - name: Setup ROS
         run: |
-          [ ${{ matrix.ROS_DISTRO }} = "one" ] && DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt install -qq -y catkin
-          [ ${{ matrix.ROS_DISTRO }} = "one" ] || sudo apt -y -qq install ${{ matrix.PYTHON_EXECUTABLE }}-rosdep ros-${{ matrix.ROS_DISTRO }}-catkin
-          sudo apt -y -qq install ${{ matrix.PYTHON_EXECUTABLE }}-catkin-tools ros-${{ matrix.ROS_DISTRO }}-ros-environment make gcc g++
+          export DEBIAN_FRONTEND=noninteractive
+          export TZ=Etc/UTC
+          sudo apt -y -qq install ${{ matrix.PYTHON_EXECUTABLE }}-catkin-tools ros-${{ matrix.ROS_DISTRO }}-catkin make gcc g++
+          sudo apt -y -qq install ${{ matrix.PYTHON_EXECUTABLE }}-rosdep ros-${{ matrix.ROS_DISTRO }}-catkin
           sudo apt -y -qq install ros-${{ matrix.ROS_DISTRO }}-roseus ros-${{ matrix.ROS_DISTRO }}-roseus-smach
-          # ROS-O instaelled rosdep at 'Setup ROS-O deb repository'
-          [ -e /etc/ros/rosdep/sources.list.d ] || (sudo rosdep init && rosdep update --include-eol-distros)
+          sudo rosdep init
+          rosdep update --include-eol-distros
 
       - name: Setup Workspace
         run: |
